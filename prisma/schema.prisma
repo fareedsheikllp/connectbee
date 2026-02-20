@@ -1,0 +1,326 @@
+// prisma/schema.prisma
+// Run: npx prisma generate && npx prisma db push
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH ──────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // hashed with bcrypt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  workspace     Workspace?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── WORKSPACE ─────────────────────────────────────────────────────
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  plan        Plan     @default(TRIAL)
+  planExpires DateTime?
+  stripeId    String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Owner
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // WhatsApp
+  waPhoneNumberId  String?
+  waAccessToken    String?  @db.Text
+  waBusinessId     String?
+  waVerified       Boolean  @default(false)
+
+  // Relations
+  contacts    Contact[]
+  broadcasts  Broadcast[]
+  chatbots    Chatbot[]
+  conversations Conversation[]
+  catalog     Product[]
+  catalogItems  CatalogItem[]
+  contactGroups  ContactGroup[]
+  integrations   Integration[]
+  templates  Template[]
+}
+
+enum Plan {
+  TRIAL
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+// ─── CONTACTS ──────────────────────────────────────────────────────
+
+model Contact {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  phone       String
+  name        String?
+  email       String?
+  notes       String?
+  avatar      String?
+  tags        String[]
+  attributes  Json     @default("{}")
+  optedIn     Boolean  @default(true)
+  optedInAt   DateTime @default(now())
+  lastSeenAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  conversations Conversation[]
+  broadcastRecipients BroadcastRecipient[]
+  groupMembers   ContactGroupMember[]
+  subscribed  Boolean  @default(true)
+
+  @@unique([workspaceId, phone])
+}
+model Integration {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  provider    String   // "openai", "zapier", "hubspot" etc
+  enabled     Boolean  @default(false)
+  config      Json     @default("{}") // stores API keys, webhook URLs etc
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([workspaceId, provider])
+}
+model Template {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  body        String
+  category    String   @default("General")
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+model CatalogItem {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  description String    @default("")
+  price       Float
+  currency    String    @default("CAD")
+  imageUrl    String    @default("")
+  category    String    @default("")
+  inStock     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+model ContactGroup {
+  id          String               @id @default(cuid())
+  workspaceId String
+  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  description String               @default("")
+  members     ContactGroupMember[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model ContactGroupMember {
+  id        String       @id @default(cuid())
+  groupId   String
+  group     ContactGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  contactId String
+  contact   Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+}
+// ─── CONVERSATIONS / INBOX ─────────────────────────────────────────
+
+model Conversation {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contactId   String
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  status      ConversationStatus @default(OPEN)
+  assignedTo  String?  // agent user id
+  lastMessage String?
+  lastMessageAt DateTime?
+  chatbotId   String?
+  unreadCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messages    Message[]
+  
+}
+
+enum ConversationStatus {
+  OPEN
+  RESOLVED
+  BOT
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  waMessageId    String?  @unique  // WhatsApp message ID
+  direction      MessageDirection
+  type           MessageType @default(TEXT)
+  content        String   @db.Text
+  mediaUrl       String?
+  status         MessageStatus @default(SENT)
+  sentAt         DateTime @default(now())
+  deliveredAt    DateTime?
+  readAt         DateTime?
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  DOCUMENT
+  TEMPLATE
+  INTERACTIVE
+}
+
+enum MessageStatus {
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+// ─── BROADCASTS ────────────────────────────────────────────────────
+
+model Broadcast {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  name        String
+  message     String   @db.Text
+  mediaUrl    String?
+  status      BroadcastStatus @default(DRAFT)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  chatbotIds  String[]  @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  recipients  BroadcastRecipient[]
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+model BroadcastRecipient {
+  id          String   @id @default(cuid())
+  broadcastId String
+  broadcast   Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  contactId   String
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  status      MessageStatus @default(SENDING)
+  sentAt      DateTime?
+}
+
+// ─── CHATBOT ───────────────────────────────────────────────────────
+
+model Chatbot {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  active      Boolean  @default(false)
+  flow        Json     @default("{}") // node graph JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── CATALOG ───────────────────────────────────────────────────────
+
+model Product {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  price       Float
+  currency    String   @default("CAD")
+  images      String[]
+  inStock     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -1,4 +1,5 @@
 "use client";
+import { Suspense } from "react";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -6,7 +7,7 @@ import Link from "next/link";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -139,13 +140,14 @@ export default function LoginPage() {
           {loading ? <Loader2 size={16} className="animate-spin" /> : <><span>Sign in</span><ArrowRight size={15} /></>}
         </button>
       </form>
-
-      {/*<p className="mt-6 text-center text-sm text-ink-400">
-        Don't have an account?{" "}
-        <Link href="/signup" className="text-brand-600 font-semibold hover:text-brand-700 transition-colors">
-          Create one free
-        </Link>
-      </p>*/}
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

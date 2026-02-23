@@ -24,7 +24,7 @@ async function getDashboardData(userId) {
 }
 
 const QUICK_ACTIONS = [
-  { label: "Import Contacts",  desc: "Upload a CSV file",        href: "/contacts",       emoji: "🗂️" },
+  { label: "Import Contacts",  desc: "Add Contacts",        href: "/contacts",       emoji: "🗂️" },
   { label: "Send Broadcast",   desc: "Reach all your contacts",  href: "/broadcasts/new", emoji: "📣" },
   { label: "Build a Chatbot",  desc: "Automate your responses",  href: "/chatbot",        emoji: "⚡" },
   { label: "Add Products",     desc: "Set up your catalog",      href: "/catalog",        emoji: "📦" },
@@ -58,14 +58,15 @@ export default async function DashboardPage() {
             Here's what's happening with your WhatsApp business today.
           </p>
         </div>
-        <div className="badge-yellow gap-2 py-2 px-4">
+        
+        {/*<div className="badge-yellow gap-2 py-2 px-4">
           <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse-soft" />
           14-day trial active
-        </div>
+        </div>*/}
         </div>
 
       {/* WhatsApp Setup Banner */}
-      {!data.workspace?.waVerified && (
+      {/*{!data.workspace?.waVerified && (
         <div className="relative overflow-hidden rounded-2xl bg-ink-900 p-6 flex items-center justify-between gap-4 flex-wrap">
           <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 80% 50%, rgba(34,197,94,0.12) 0%, transparent 60%)" }} />
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
@@ -87,7 +88,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </div>
-      )}
+      )}*/}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

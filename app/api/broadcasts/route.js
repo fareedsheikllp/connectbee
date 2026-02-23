@@ -78,7 +78,7 @@ export async function POST(req) {
 
       await Promise.all(
         contacts.map(async (contact) => {
-          const result = await sendWhatsApp(contact.phone, message);
+          const result = await sendWhatsApp(contact.phone, message, broadcast.mediaUrl || null);
 
           await db.broadcastRecipient.updateMany({
             where: { broadcastId: broadcast.id, contactId: contact.id },

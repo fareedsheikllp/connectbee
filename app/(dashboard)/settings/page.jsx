@@ -8,7 +8,6 @@ import {
 import toast from "react-hot-toast";
 
 const TABS = [
-  { id: "whatsapp", label: "WhatsApp", icon: MessageSquare },
   { id: "profile",  label: "Profile",  icon: User         },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Security", icon: Shield        },
@@ -23,7 +22,7 @@ const SETUP_STEPS = [
 ];
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState("whatsapp");
+  const [tab, setTab] = useState("profile");
   const [form, setForm] = useState({
     phoneNumberId: "",
     accessToken: "",

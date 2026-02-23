@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
 
 export async function POST(req) {
   try {
@@ -8,33 +7,30 @@ export async function POST(req) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.BREVO_SMTP_USER,
-        pass: process.env.BREVO_SMTP_PASS,
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": process.env.BREVO_API_KEY,
       },
+      body: JSON.stringify({
+        sender: { name: "ConnectBee", email: "fareed.sheik@gliggo.com" },
+        to: [{ email: "fareed.sheik@gliggo.com" }],
+        replyTo: { email, name },
+        subject: `New contact: ${subject || "General Inquiry"} — from ${name}`,
+        htmlContent: `<p><b>Name:</b> ${name}</p><p><b>Email:</b> ${email}</p>${company ? `<p><b>Company:</b> ${company}</p>` : ""}<p><b>Subject:</b> ${subject || "—"}</p><p><b>Message:</b><br/>${message}</p>`,
+      }),
     });
 
-    await transporter.sendMail({
-      from: `ConnectBee <${process.env.BREVO_SMTP_USER}>`,
-      to: process.env.CONTACT_EMAIL,
-      replyTo: email,
-      subject: `New contact: ${subject || "General Inquiry"} — from ${name}`,
-      html: `
-        <p><b>Name:</b> ${name}</p>
-        <p><b>Email:</b> ${email}</p>
-        ${company ? `<p><b>Company:</b> ${company}</p>` : ""}
-        <p><b>Subject:</b> ${subject || "—"}</p>
-        <p><b>Message:</b><br/>${message}</p>
-      `,
-    });
+    if (!res.ok) {
+      const err = await res.json();
+      console.error("Contact email error:", JSON.stringify(err));
+      return NextResponse.json({ error: "Failed to send" }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Contact email error:", err.message);
-    return NextResponse.json({ error: "Failed to send" }, { status: 500 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

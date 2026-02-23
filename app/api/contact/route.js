@@ -14,8 +14,8 @@ export async function POST(req) {
         "api-key": process.env.BREVO_API_KEY,
       },
       body: JSON.stringify({
-        sender: { name: "ConnectBee", email: "jayakarthiga@fareedsheikllp.com" },
-        to: [{ email: "jayakarthiga@fareedsheikllp.com" }],
+        sender: { name: "ConnectBee", email: "fareed.sheik@gliggo.com" },
+        to: [{ email: "fareed.sheik@gliggo.com" }],
         replyTo: { email, name },
         subject: `New contact: ${subject || "General Inquiry"} — from ${name}`,
         htmlContent: `<p><b>Name:</b> ${name}</p><p><b>Email:</b> ${email}</p>${company ? `<p><b>Company:</b> ${company}</p>` : ""}<p><b>Subject:</b> ${subject || "—"}</p><p><b>Message:</b><br/>${message}</p>`,

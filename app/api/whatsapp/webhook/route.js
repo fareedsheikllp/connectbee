@@ -1,16 +1,46 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { sendWhatsApp } from "@/lib/twilio";
+import { sendWhatsApp } from "@/lib/whatsapp";
 
+// ─── Webhook verification (GET) ───────────────────────────────────
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const mode = searchParams.get("hub.mode");
+  const token = searchParams.get("hub.verify_token");
+  const challenge = searchParams.get("hub.challenge");
+
+  if (mode === "subscribe" && token === process.env.META_VERIFY_TOKEN) {
+    return new NextResponse(challenge, { status: 200 });
+  }
+  return new NextResponse("Forbidden", { status: 403 });
+}
+
+// ─── Incoming messages (POST) ─────────────────────────────────────
 export async function POST(req) {
   try {
-    const formData = await req.formData();
-    const from = formData.get("From")?.replace("whatsapp:", "").replace("+", "");
-    const body = formData.get("Body");
+    const payload = await req.json();
+
+    const entry = payload.entry?.[0];
+    const change = entry?.changes?.[0];
+    const value = change?.value;
+
+    // Ignore status updates (delivered, read etc)
+    if (value?.statuses) return new NextResponse("OK", { status: 200 });
+
+    const msgObj = value?.messages?.[0];
+    if (!msgObj) return new NextResponse("OK", { status: 200 });
+
+    const from = msgObj.from; // e.g. "14155238886"
+    console.log("Incoming from:", from);
+    const body = msgObj.type === "text"
+      ? msgObj.text?.body
+      : msgObj.type === "image"
+      ? "[Image]"
+      : `[${msgObj.type}]`;
 
     if (!from || !body) return new NextResponse("OK", { status: 200 });
 
-    // Find contact by phone number
+    // Find contact
     const contact = await db.contact.findFirst({
       where: { phone: { contains: from.slice(-10) } },
       include: { workspace: true },
@@ -40,7 +70,7 @@ export async function POST(req) {
       });
     }
 
-    // Save the message
+    // Save message
     await db.message.create({
       data: {
         conversationId: conversation.id,
@@ -50,11 +80,14 @@ export async function POST(req) {
         sentAt: new Date(),
       },
     });
+
+    // Run chatbot if in BOT mode
     if (conversation.status === "BOT") {
       const botIds = conversation.chatbotIds || [];
       const chatbots = botIds.length > 0
         ? await db.chatbot.findMany({ where: { id: { in: botIds }, active: true } })
         : await db.chatbot.findMany({ where: { workspaceId: contact.workspaceId, active: true } });
+
       for (const chatbot of chatbots) {
         if (chatbot?.flow?.nodes?.length > 0) {
           await runBotFlow(chatbot.flow.nodes, body, from, conversation.id);
@@ -72,35 +105,8 @@ export async function POST(req) {
 async function runBotFlow(nodes, incomingMessage, phone, conversationId) {
   const msgLower = incomingMessage.toLowerCase().trim();
 
-  // Handle STOP / START subscription commands
-  //if (msgLower === "stop") {
-    //await db.contact.updateMany({
-      //where: { phone: { contains: phone.slice(-10) } },
-      //data: { subscribed: false },
-    //});
-    //await sendBotMessage("You have been unsubscribed. Reply START to subscribe again.", phone, conversationId);
-    //return;
-  //}
-
-  //if (msgLower === "start") {
-    //await db.contact.updateMany({
-      //where: { phone: { contains: phone.slice(-10) } },
-      //data: { subscribed: true },
-    //});
-    //await sendBotMessage("You have been subscribed! You will now receive messages from us.", phone, conversationId);
-    //return;
-  //}
-
-  // Check if contact is unsubscribed
-  //const contact = await db.contact.findFirst({
-    //where: { phone: { contains: phone.slice(-10) } },
-  //});
-  //if (contact?.subscribed === false) return;
-
-  // Find all condition nodes and check each independently
   const conditionNodes = nodes.filter(n => n.type === "condition");
 
-  // No conditions — run all message nodes in order
   if (conditionNodes.length === 0) {
     const messageNodes = nodes
       .filter(n => n.type === "message")
@@ -111,7 +117,6 @@ async function runBotFlow(nodes, incomingMessage, phone, conversationId) {
     return;
   }
 
-  // Check each condition independently
   for (const condNode of conditionNodes) {
     const keywords = condNode.data?.keyword
       ?.toLowerCase()
@@ -130,13 +135,12 @@ async function runBotFlow(nodes, incomingMessage, phone, conversationId) {
     });
 
     if (matched) {
-      // Follow all connected nodes from this condition
       const connectedIds = condNode.connections || [];
       for (const connId of connectedIds) {
         const connNode = nodes.find(n => n.id === connId);
         if (connNode) await handleNode(connNode, phone, conversationId);
       }
-      return; // Stop after first matched condition
+      return;
     }
   }
 }

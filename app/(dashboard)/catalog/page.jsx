@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Plus, Search, Package, Edit2, Trash2, X, Check,
-  Tag, DollarSign, Image, ToggleLeft, ToggleRight, ShoppingBag
+  Tag, DollarSign, Image, ToggleLeft, ToggleRight, ShoppingBag, ExternalLink
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -52,9 +52,17 @@ function ProductCard({ item, onEdit, onDelete, onToggleStock }) {
           <p className="text-xs text-ink-400 line-clamp-2 mb-3">{item.description}</p>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-brand-600">
-            {item.currency} {parseFloat(item.price).toFixed(2)}
-          </span>
+          <div>
+            <span className="text-lg font-bold text-brand-600">
+              {item.currency} {parseFloat(item.price).toFixed(2)}
+            </span>
+            {item.linkUrl && (
+              <a href={item.linkUrl} target="_blank" rel="noreferrer"
+                className="block text-xs text-brand-500 hover:underline truncate mt-0.5">
+                View product →
+              </a>
+            )}
+          </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => onToggleStock(item)}
@@ -84,12 +92,13 @@ function ProductCard({ item, onEdit, onDelete, onToggleStock }) {
 
 // ── Modal ────────────────────────────────────────────────────────────────────
 function ProductModal({ item, onClose, onSave }) {
-  const [form, setForm] = useState({
+const [form, setForm] = useState({
     name: item?.name || "",
     description: item?.description || "",
     price: item?.price || "",
     currency: item?.currency || "CAD",
     imageUrl: item?.imageUrl || "",
+    linkUrl: item?.linkUrl || "",
     category: item?.category || "General",
     inStock: item?.inStock !== false,
   });
@@ -131,7 +140,19 @@ function ProductModal({ item, onClose, onSave }) {
               </div>
             )}
           </div>
-
+          <div>
+            <label className="text-xs font-medium text-ink-500 mb-1 block">Product Link URL</label>
+            <div className="relative">
+              <ExternalLink size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
+              <input
+                type="url"
+                value={form.linkUrl}
+                onChange={(e) => set("linkUrl", e.target.value)}
+                placeholder="https://yourstore.com/product"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-300"
+              />
+            </div>
+          </div>
           <div>
             <label className="text-xs font-medium text-ink-500 mb-1 block">Image URL</label>
             <div className="relative">

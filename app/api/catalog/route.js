@@ -30,7 +30,7 @@ export async function POST(req) {
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
     const body = await req.json();
-    const { name, description, price, currency, imageUrl, category, inStock } = body;
+    const { name, description, price, currency, imageUrl, linkUrl, category, inStock } = body;
 
     if (!name || price === undefined) {
       return NextResponse.json({ error: "Name and price are required" }, { status: 400 });
@@ -43,6 +43,7 @@ export async function POST(req) {
         price: parseFloat(price),
         currency: currency || "CAD",
         imageUrl: imageUrl || "",
+        linkUrl: linkUrl || "",
         category: category || "General",
         inStock: inStock !== false,
         workspaceId: workspace.id,

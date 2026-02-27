@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-// Normalize status to lowercase everywhere
 const normalizeStatus = (status) => status?.toLowerCase() ?? "draft";
 
 export async function GET(req, context) {
@@ -11,15 +10,16 @@ export async function GET(req, context) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await context.params;
+    console.log("GET broadcast id:", id);
 
     const broadcast = await db.broadcast.findFirst({
       where: { id, workspace: { userId: session.user.id } },
       include: { recipients: { include: { contact: true } } },
     });
 
+    console.log("broadcast found:", !!broadcast);
     if (!broadcast) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // Fetch chatbot names manually from chatbotIds array
     const chatbots = broadcast.chatbotIds?.length > 0
       ? await db.chatbot.findMany({
           where: { id: { in: broadcast.chatbotIds } },
@@ -27,12 +27,16 @@ export async function GET(req, context) {
         })
       : [];
 
+    console.log("chatbots found:", chatbots.length);
+
     return NextResponse.json({
       ...broadcast,
       status: normalizeStatus(broadcast.status),
       chatbots,
     });
   } catch (err) {
+    console.error("GET /broadcasts/[id] ERROR:", err.message);
+    console.error(err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
@@ -55,7 +59,6 @@ export async function PATCH(req, context) {
       data: {
         name: data.name ?? broadcast.name,
         message: data.message ?? broadcast.message,
-        // Always store lowercase
         status: (data.status ?? broadcast.status)?.toUpperCase(),
         scheduledAt: data.scheduledAt ?? broadcast.scheduledAt,
       },
@@ -63,6 +66,8 @@ export async function PATCH(req, context) {
 
     return NextResponse.json({ ...updated, status: normalizeStatus(updated.status), chatbots: [] });
   } catch (err) {
+    console.error("PATCH /broadcasts/[id] ERROR:", err.message);
+    console.error(err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
@@ -83,6 +88,8 @@ export async function DELETE(req, context) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    console.error("DELETE /broadcasts/[id] ERROR:", err.message);
+    console.error(err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

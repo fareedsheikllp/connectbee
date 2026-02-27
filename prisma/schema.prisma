@@ -152,6 +152,8 @@ model Template {
   body        String
   category    String   @default("General")
   tags        String[] @default([])
+  metaStatus  String   @default("NONE")  // NONE | PENDING | APPROVED | REJECTED
+  metaTemplateId String?  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -166,6 +168,7 @@ model CatalogItem {
   imageUrl    String    @default("")
   category    String    @default("")
   inStock     Boolean   @default(true)
+  linkUrl     String    @default("")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -291,6 +294,8 @@ model BroadcastRecipient {
   contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
   status      MessageStatus @default(SENDING)
   sentAt      DateTime?
+  failureReason  String?
+  errorCode      String?
 }
 
 // ─── CHATBOT ───────────────────────────────────────────────────────

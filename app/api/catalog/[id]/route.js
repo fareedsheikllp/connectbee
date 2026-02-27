@@ -25,6 +25,7 @@ export async function PATCH(req, context) {
         imageUrl: data.imageUrl ?? item.imageUrl,
         category: data.category ?? item.category,
         inStock: data.inStock !== undefined ? data.inStock : item.inStock,
+        linkUrl: data.linkUrl ?? item.linkUrl,
       },
     });
 

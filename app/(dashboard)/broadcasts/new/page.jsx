@@ -139,7 +139,7 @@ function CatalogPicker({ onInsert, onClose }) {
   );
 
   function buildProductText(item) {
-    return `🛍️ *${item.name}*\n${item.description ? item.description + "\n" : ""}💰 ${item.currency} ${Number(item.price).toFixed(2)}\n${item.inStock ? "✅ In Stock" : "❌ Out of Stock"}`;
+    return `🛍️ *${item.name}*\n${item.description ? item.description + "\n" : ""}💰 ${item.currency} ${Number(item.price).toFixed(2)}\n${item.inStock ? "✅ In Stock" : "❌ Out of Stock"}${item.linkUrl ? `\n🔗 ${item.linkUrl}` : ""}`;
   }
 
   return (
@@ -174,7 +174,7 @@ function CatalogPicker({ onInsert, onClose }) {
             filtered.map((item) => (
               <button
                 key={item.id}
-                onClick={() => onInsert(buildProductText(item))}
+                onClick={() => onInsert(buildProductText(item), item.imageUrl || "")}
                 className="w-full text-left p-4 rounded-xl border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all group flex items-center gap-4"
               >
                 {item.imageUrl ? (
@@ -297,6 +297,7 @@ export default function NewBroadcastPage() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showCatalogPicker, setShowCatalogPicker] = useState(false);
   const [showBotPicker, setShowBotPicker] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState("");
 
   // Step 2 — Audience
   const [contacts, setContacts] = useState([]);
@@ -331,8 +332,9 @@ export default function NewBroadcastPage() {
     setTimeout(() => { el.focus(); el.setSelectionRange(s + v.length, s + v.length); }, 0);
   }
 
-  function insertCatalogText(text) {
+  function insertCatalogText(text, imageUrl) {
     setMessage((prev) => (prev ? prev + "\n\n" + text : text));
+    if (imageUrl) setMediaUrl(imageUrl);
     setShowCatalogPicker(false);
   }
 
@@ -359,6 +361,7 @@ export default function NewBroadcastPage() {
       body: JSON.stringify({
         name: name.trim(),
         message: message.trim(),
+        mediaUrl: mediaUrl || null,
         contactIds: selectedIds,
         scheduledAt: sendNow ? null : scheduledAt || null,
         status: sendNow ? "sent" : scheduledAt ? "scheduled" : "draft",

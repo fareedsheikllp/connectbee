@@ -38,7 +38,9 @@ export async function POST(req, context) {
         const contact = recipient.contact;
         if (!contact) return;
 
+        console.log("Sending to:", contact.phone, "Message:", broadcast.message);
         const result = await sendWhatsApp(contact.phone, broadcast.message);
+        console.log("Send result:", JSON.stringify(result));
 
         await db.broadcastRecipient.update({
           where: { id: recipient.id },

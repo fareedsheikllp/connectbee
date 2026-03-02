@@ -10,7 +10,7 @@ export default function AuthLayout({ children }) {
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#4ade80,#16a34a)" }}>
             <Zap size={15} color="white" strokeWidth={2.5} />
           </div>
-          <span className="font-sans font-extrabold text-xl text-white tracking-tight">Connect<span className="gradient-text">Bee</span></span>
+          <span className="font-sans font-extrabold text-xl text-white tracking-tight">Connect<span className="gradient-text">Beez</span></span>
         </a>
         <div className="relative space-y-8">
           <blockquote className="font-display text-4xl font-bold text-white leading-tight">"We grew our WhatsApp leads <span className="gradient-text">3× in 30 days</span>."</blockquote>
@@ -37,7 +37,7 @@ export default function AuthLayout({ children }) {
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#4ade80,#16a34a)" }}>
               <Zap size={13} color="white" strokeWidth={2.5} />
             </div>
-            <span className="font-sans font-extrabold text-lg text-ink-900 tracking-tight">Connect<span className="gradient-text">Bee</span></span>
+            <span className="font-sans font-extrabold text-lg text-ink-900 tracking-tight">Connect<span className="gradient-text">Beez</span></span>
           </div>
           {children}
         </div>

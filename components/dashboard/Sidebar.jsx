@@ -32,7 +32,7 @@ export default function Sidebar({ user }) {
           <Zap size={15} className="text-white" strokeWidth={2.5} />
         </div>
         <span className="font-sans font-extrabold text-base text-ink-900 tracking-tight">
-          Connect<span className="gradient-text">Bee</span>
+          Connect<span className="gradient-text">Beez</span>
         </span>
       </div>
 

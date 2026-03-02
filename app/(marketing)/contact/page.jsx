@@ -38,7 +38,7 @@ export default function ContactPage() {
       <nav className="border-b border-gray-100 sticky top-0 bg-white/95 backdrop-blur-md z-20">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="font-black text-xl tracking-tight">
-            <span className="text-gray-900">Connect</span><span className="text-emerald-500">Bee</span>
+            <span className="text-gray-900">Connect</span><span className="text-emerald-500">Beez</span>
           </Link>
           <div className="flex items-center gap-6">
             <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Terms</Link>
@@ -67,7 +67,7 @@ export default function ContactPage() {
               {[
                 {
                   label: "General Inquiries",
-                  value: "hello@ConnectBee.io",
+                  value: "hello@ConnectBeez.io",
                   desc: "For general questions and partnerships",
                   icon: (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -77,7 +77,7 @@ export default function ContactPage() {
                 },
                 {
                   label: "Support",
-                  value: "support@ConnectBee.io",
+                  value: "support@ConnectBeez.io",
                   desc: "Technical help and account issues",
                   icon: (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -87,7 +87,7 @@ export default function ContactPage() {
                 },
                 {
                   label: "Privacy",
-                  value: "privacy@ConnectBee.io",
+                  value: "privacy@ConnectBeez.io",
                   desc: "Data requests and privacy concerns",
                   icon: (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -229,7 +229,7 @@ export default function ContactPage() {
       {/* Footer */}
       <footer className="border-t border-gray-100 py-8 mt-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-400">© 2026 ConnectBee. All rights reserved.</p>
+          <p className="text-xs text-gray-400">© 2026 ConnectBeez. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Terms of Service</Link>
             <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Privacy Policy</Link>

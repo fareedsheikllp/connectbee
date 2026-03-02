@@ -4,15 +4,15 @@ import Link from "next/link";
 const sections = [
   {
     title: "1. Acceptance of Terms",
-    content: `By accessing or using ConnectBee ("Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our Service. These terms apply to all users, including visitors, registered users, and others who access or use the Service in any capacity.`
+    content: `By accessing or using ConnectBeez ("Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our Service. These terms apply to all users, including visitors, registered users, and others who access or use the Service in any capacity.`
   },
   {
     title: "2. Description of Service",
-    content: `ConnectBee provides a WhatsApp engagement platform that allows businesses to send broadcast messages, manage customer conversations, build automated chatbots, and engage with their audience via WhatsApp. The Service is provided as-is and we reserve the right to modify, suspend, or discontinue any aspect of the Service at any time with reasonable notice.`
+    content: `ConnectBeez provides a WhatsApp engagement platform that allows businesses to send broadcast messages, manage customer conversations, build automated chatbots, and engage with their audience via WhatsApp. The Service is provided as-is and we reserve the right to modify, suspend, or discontinue any aspect of the Service at any time with reasonable notice.`
   },
   {
     title: "3. Account Registration",
-    content: `To use ConnectBee, you must create an account and provide accurate, complete, and current information. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. Notify us immediately of any unauthorized use at security@ConnectBee.io.`
+    content: `To use ConnectBeez, you must create an account and provide accurate, complete, and current information. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. Notify us immediately of any unauthorized use at security@ConnectBeez.io.`
   },
   {
     title: "4. Acceptable Use Policy",
@@ -32,11 +32,11 @@ const sections = [
   },
   {
     title: "8. Intellectual Property",
-    content: `ConnectBee, its logo, and all related content, features, and functionality are owned by us and protected by international copyright, trademark, patent, and other intellectual property laws. You may not copy, modify, distribute, reverse engineer, or create derivative works without explicit written permission.`
+    content: `ConnectBeez, its logo, and all related content, features, and functionality are owned by us and protected by international copyright, trademark, patent, and other intellectual property laws. You may not copy, modify, distribute, reverse engineer, or create derivative works without explicit written permission.`
   },
   {
     title: "9. Limitation of Liability",
-    content: `To the maximum extent permitted by applicable law, ConnectBee shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data, goodwill, or business opportunities, arising from your use of or inability to use the Service.`
+    content: `To the maximum extent permitted by applicable law, ConnectBeez shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data, goodwill, or business opportunities, arising from your use of or inability to use the Service.`
   },
   {
     title: "10. Termination",
@@ -65,7 +65,7 @@ export default function TermsPage() {
       <nav className="border-b border-gray-100 sticky top-0 bg-white/95 backdrop-blur-md z-20">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="font-black text-xl tracking-tight">
-            <span className="text-gray-900">Connect</span><span className="text-emerald-500">Bee</span>
+            <span className="text-gray-900">Connect</span><span className="text-emerald-500">Beez</span>
           </Link>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Privacy</Link>
@@ -85,7 +85,7 @@ export default function TermsPage() {
             Terms of<br /><em className="text-emerald-500 not-italic">Service</em>
           </h1>
           <p className="text-gray-500 text-base leading-relaxed max-w-xl">
-            Please read these terms carefully before using ConnectBee. By using our platform, you agree to be bound by the following conditions.
+            Please read these terms carefully before using ConnectBeez. By using our platform, you agree to be bound by the following conditions.
           </p>
           <p className="text-gray-400 text-sm mt-6 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
@@ -153,7 +153,7 @@ export default function TermsPage() {
       {/* Footer */}
       <footer className="border-t border-gray-100 py-8 mt-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-400">© 2026 ConnectBee. All rights reserved.</p>
+          <p className="text-xs text-gray-400">© 2026 ConnectBeez. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Privacy Policy</Link>
             <Link href="/contact" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Contact</Link>

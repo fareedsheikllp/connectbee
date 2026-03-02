@@ -108,7 +108,7 @@ export default function HomePage() {
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#4ade80,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(34,197,94,0.3)" }}>
               <Zap size={16} color="white" strokeWidth={2.5} />
             </div>
-            <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "#0d150d", letterSpacing: "-0.02em" }}>Connect<span style={{ color: "#16a34a" }}>Bee</span></span>
+            <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "#0d150d", letterSpacing: "-0.02em" }}>Connect<span style={{ color: "#16a34a" }}>Beez</span></span>
           </Link>
 
           <div className="hide-mobile" style={{ display: "flex", gap: 32, alignItems: "center" }}>
@@ -153,7 +153,7 @@ export default function HomePage() {
                 Turn WhatsApp into your{" "}<span style={{ color: "#16a34a", fontStyle: "italic" }}>Revenue Engine</span>
               </h1>
               <p style={{ fontSize: "1.1rem", color: "#4a5f4a", lineHeight: 1.75, maxWidth: 480, marginBottom: 40 }}>
-                ConnectBee gives you everything to automate conversations, close deals, and deliver 5-star support — all inside WhatsApp.
+                ConnectBeez gives you everything to automate conversations, close deals, and deliver 5-star support — all inside WhatsApp.
               </p>
               <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center", marginBottom: 48 }}>
                 <Link href="/contact" className="btn-hero">Get Started <ArrowRight size={17} /></Link>
@@ -167,7 +167,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <div style={{ display: "flex", gap: 2, marginBottom: 2 }}>{[...Array(5)].map((_,i) => <Star key={i} size={13} fill="#22c55e" color="#22c55e" />)}</div>
-                  <p style={{ fontSize: "0.8rem", color: "#6a826a", fontWeight: 500 }}>500+ businesses growing with ConnectBee</p>
+                  <p style={{ fontSize: "0.8rem", color: "#6a826a", fontWeight: 500 }}>500+ businesses growing with ConnectBeez</p>
                 </div>
               </div>
             </div>
@@ -185,7 +185,7 @@ export default function HomePage() {
                     <div style={{ background: "#075e54", padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>🏪</div>
                       <div>
-                        <div style={{ color: "white", fontWeight: 700, fontSize: "0.82rem" }}>ConnectBee Business</div>
+                        <div style={{ color: "white", fontWeight: 700, fontSize: "0.82rem" }}>ConnectBeez Business</div>
                         <div style={{ color: "rgba(255,255,255,0.65)", fontSize: "0.65rem" }}>🟢 Online · Official API</div>
                       </div>
                     </div>
@@ -269,7 +269,7 @@ export default function HomePage() {
         <div style={{ maxWidth: 1200, margin: "0 auto", textAlign: "center" }}>
           <p style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.12em", color: "#16a34a", textTransform: "uppercase", marginBottom: 14 }}>80+ Native Integrations</p>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem,4vw,2.9rem)", color: "#0d150d", lineHeight: 1.1, marginBottom: 16 }}>Connects with your <em>entire stack</em></h2>
-          <p style={{ color: "#6a826a", fontSize: "1rem", maxWidth: 480, margin: "0 auto 44px" }}>Plug ConnectBee into the tools you already use. No dev work — just authorize and go live.</p>
+          <p style={{ color: "#6a826a", fontSize: "1rem", maxWidth: 480, margin: "0 auto 44px" }}>Plug ConnectBeez into the tools you already use. No dev work — just authorize and go live.</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
             {INTEGRATIONS.map(name => <div key={name} className="integ-chip">{name}</div>)}
             <div style={{ padding: "9px 18px", background: "#f0fdf4", border: "1px dashed #86efac", borderRadius: 50, fontSize: "0.84rem", fontWeight: 600, color: "#16a34a" }}>+64 more</div>
@@ -363,7 +363,7 @@ export default function HomePage() {
               <div style={{ width: 30, height: 30, borderRadius: 9, background: "linear-gradient(135deg,#4ade80,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Zap size={13} color="white" strokeWidth={2.5} />
               </div>
-              <span style={{ fontWeight: 800, fontSize: "1rem", color: "white" }}>ConnectBee</span>
+              <span style={{ fontWeight: 800, fontSize: "1rem", color: "white" }}>ConnectBeez</span>
             </div>
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
             {[
@@ -378,7 +378,7 @@ export default function HomePage() {
             </div>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 22, flexWrap: "wrap", gap: 12 }}>
-            <span style={{ fontSize: "0.78rem" }}>©2026 ConnectBee. All rights reserved. Powered by Official WhatsApp Business API.</span>
+            <span style={{ fontSize: "0.78rem" }}>©2026 ConnectBeez. All rights reserved. Powered by Official WhatsApp Business API.</span>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
               <span style={{ fontSize: "0.76rem", color: "#22c55e" }}>All systems operational</span>

@@ -16,7 +16,7 @@ const sections = [
   },
   {
     title: "Data Retention",
-    content: `We retain your personal information for as long as your account is active or as needed to provide you the Service. You may request deletion of your account and associated data at any time by contacting us at privacy@ConnectBee.io. We will respond to deletion requests within 30 days.`
+    content: `We retain your personal information for as long as your account is active or as needed to provide you the Service. You may request deletion of your account and associated data at any time by contacting us at privacy@ConnectBeez.io. We will respond to deletion requests within 30 days.`
   },
   {
     title: "Data Security",
@@ -28,7 +28,7 @@ const sections = [
   },
   {
     title: "Your Rights & Choices",
-    content: `Depending on your location, you may have rights to access, correct, or delete your personal information; object to or restrict certain processing; and receive a copy of your data in a portable format. To exercise any of these rights, contact us at privacy@ConnectBee.io. We will respond within 30 days.`
+    content: `Depending on your location, you may have rights to access, correct, or delete your personal information; object to or restrict certain processing; and receive a copy of your data in a portable format. To exercise any of these rights, contact us at privacy@ConnectBeez.io. We will respond within 30 days.`
   },
   {
     title: "Cookies & Tracking",
@@ -56,7 +56,7 @@ export default function PrivacyPage() {
       <nav className="border-b border-gray-100 sticky top-0 bg-white/95 backdrop-blur-md z-20">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="font-black text-xl tracking-tight">
-            <span className="text-gray-900">Connect</span><span className="text-emerald-500">Bee</span>
+            <span className="text-gray-900">Connect</span><span className="text-emerald-500">Beez</span>
           </Link>
           <div className="flex items-center gap-6">
             <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Terms</Link>
@@ -129,7 +129,7 @@ export default function PrivacyPage() {
         {/* Contact CTA */}
         <div className="mt-16 rounded-2xl bg-gray-900 p-10 text-center">
           <p className="text-white font-bold text-lg mb-2">Privacy questions?</p>
-          <p className="text-gray-400 text-sm mb-6">Email our privacy team directly at privacy@ConnectBee.io</p>
+          <p className="text-gray-400 text-sm mb-6">Email our privacy team directly at privacy@ConnectBeez.io</p>
           <Link
             href="/contact"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-400 transition-all"
@@ -142,7 +142,7 @@ export default function PrivacyPage() {
       {/* Footer */}
       <footer className="border-t border-gray-100 py-8 mt-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-400">© 2026 ConnectBee. All rights reserved.</p>
+          <p className="text-xs text-gray-400">© 2026 ConnectBeez. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Terms of Service</Link>
             <Link href="/contact" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Contact</Link>

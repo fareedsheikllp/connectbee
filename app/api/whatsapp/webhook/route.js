@@ -18,87 +18,105 @@ export async function GET(req) {
 // ─── Incoming messages (POST) ─────────────────────────────────────
 export async function POST(req) {
   try {
-    const payload = await req.json();
+    const body = await req.json();
 
-    const entry = payload.entry?.[0];
+    const entry = body.entry?.[0];
     const change = entry?.changes?.[0];
     const value = change?.value;
 
-    // Ignore status updates (delivered, read etc)
-    if (value?.statuses) return new NextResponse("OK", { status: 200 });
+    if (!value?.messages?.length) {
+      return NextResponse.json({ status: "no messages" });
+    }
 
-    const msgObj = value?.messages?.[0];
-    if (!msgObj) return new NextResponse("OK", { status: 200 });
+    const msg = value.messages[0];
+    const from = msg.from; // e.g. "14375993361"
+    const text = msg.text?.body;
+    const waMessageId = msg.id;
 
-    const from = msgObj.from; // e.g. "14155238886"
-    console.log("Incoming from:", from);
-    const body = msgObj.type === "text"
-      ? msgObj.text?.body
-      : msgObj.type === "image"
-      ? "[Image]"
-      : `[${msgObj.type}]`;
+    if (!text) return NextResponse.json({ status: "non-text ignored" });
 
-    if (!from || !body) return new NextResponse("OK", { status: 200 });
+    // Find workspace via the phone number ID that received the message
+    const displayPhoneNumberId = value.metadata?.phone_number_id;
 
-    // Find contact
-    const contact = await db.contact.findFirst({
-      where: { phone: { contains: from.slice(-10) } },
-      include: { workspace: true },
+    const workspace = await db.workspace.findFirst({
+      where: { waPhoneNumberId: displayPhoneNumberId },
     });
 
-    if (!contact) return new NextResponse("OK", { status: 200 });
+    // Fallback: grab first workspace if you only have one
+    const ws = workspace ?? await db.workspace.findFirst();
+    if (!ws) return NextResponse.json({ status: "no workspace" });
+
+    // Find or create contact
+let contact = await db.contact.findFirst({
+  where: { 
+    workspaceId: ws.id, 
+    phone: { in: [from, `+${from}`] }  // match with or without +
+  },
+});
+
+if (!contact) {
+  contact = await db.contact.create({
+    data: {
+      workspaceId: ws.id,
+      name: value.contacts?.[0]?.profile?.name || from,
+      phone: from,  // store without + going forward
+      email: "",
+      notes: "",
+    },
+  });
+}
 
     // Find or create conversation
     let conversation = await db.conversation.findFirst({
-      where: { workspaceId: contact.workspaceId, contactId: contact.id },
-      select: { id: true, status: true, chatbotId: true, contactId: true },
+      where: { workspaceId: ws.id, contactId: contact.id },
     });
-
     if (!conversation) {
       conversation = await db.conversation.create({
         data: {
-          workspaceId: contact.workspaceId,
+          workspaceId: ws.id,
           contactId: contact.id,
           status: "OPEN",
-          lastMessage: body,
+          lastMessage: text,
         },
       });
     } else {
       await db.conversation.update({
         where: { id: conversation.id },
-        data: { lastMessage: body, updatedAt: new Date() },
+        data: { lastMessage: text, updatedAt: new Date(), status: conversation.status === "RESOLVED" ? "OPEN" : conversation.status },
       });
     }
 
-    // Save message
-    await db.message.create({
-      data: {
-        conversationId: conversation.id,
-        content: body,
-        direction: "INBOUND",
-        status: "DELIVERED",
-        sentAt: new Date(),
-      },
+    // Avoid duplicate messages
+    const existing = await db.message.findFirst({
+      where: { conversationId: conversation.id, waMessageId },
     });
-
-    // Run chatbot if in BOT mode
-    if (conversation.status === "BOT") {
-      const botIds = conversation.chatbotIds || [];
-      const chatbots = botIds.length > 0
-        ? await db.chatbot.findMany({ where: { id: { in: botIds }, active: true } })
-        : await db.chatbot.findMany({ where: { workspaceId: contact.workspaceId, active: true } });
-
-      for (const chatbot of chatbots) {
-        if (chatbot?.flow?.nodes?.length > 0) {
-          await runBotFlow(chatbot.flow.nodes, body, from, conversation.id);
-        }
+    if (!existing) {
+      await db.message.create({
+        data: {
+          conversationId: conversation.id,
+          direction: "INBOUND",
+          type: "TEXT",
+          content: text,
+          status: "DELIVERED",
+          sentAt: new Date(parseInt(msg.timestamp) * 1000),
+          waMessageId,
+        },
+      });
+    }
+    if (conversation.chatbotId) {
+      const chatbot = await db.chatbot.findFirst({
+        where: { id: conversation.chatbotId, active: true },
+      });
+      if (chatbot?.flow) {
+        const nodes = Object.values(chatbot.flow);
+        await runBotFlow(nodes, text, from, conversation.id);
       }
     }
 
-    return new NextResponse("OK", { status: 200 });
+    return NextResponse.json({ status: "ok" });
   } catch (err) {
-    console.error("Webhook error:", err.message);
-    return new NextResponse("OK", { status: 200 });
+    console.error("Webhook POST error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 

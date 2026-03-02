@@ -32,7 +32,16 @@ export async function PATCH(req, context) {
         });
       }
     }
-
+    const incomingIds = data.contactIds ?? data.memberIds;
+    if (Array.isArray(incomingIds)) {
+      await db.contactGroupMember.deleteMany({ where: { groupId: id } });
+      if (incomingIds.length > 0) {
+        await db.contactGroupMember.createMany({
+          data: incomingIds.map((contactId) => ({ groupId: id, contactId })),
+          skipDuplicates: true,
+        });
+      }
+    }
     const result = await db.contactGroup.findFirst({
       where: { id },
       include: { members: { include: { contact: true } } },

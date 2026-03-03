@@ -35,6 +35,32 @@ export async function POST(req) {
 
     if (!text) return NextResponse.json({ status: "non-text ignored" });
 
+    // Handle STOP / START before anything else
+    const displayPhoneNumberIdEarly = value.metadata?.phone_number_id;
+    const wsEarly = await db.workspace.findFirst({ where: { waPhoneNumberId: displayPhoneNumberIdEarly } }) ?? await db.workspace.findFirst();
+
+    if (text.trim().toUpperCase() === "STOP") {
+      const stopContact = await db.contact.findFirst({
+        where: { workspaceId: wsEarly.id, phone: { in: [from, `+${from}`] } },
+      });
+      if (stopContact) {
+        await db.contact.update({ where: { id: stopContact.id }, data: { subscribed: false } });
+        await sendWhatsApp(from, "You have been unsubscribed. Send START to subscribe again.");
+      }
+      return NextResponse.json({ status: "unsubscribed" });
+    }
+
+    if (text.trim().toUpperCase() === "START") {
+      const startContact = await db.contact.findFirst({
+        where: { workspaceId: wsEarly.id, phone: { in: [from, `+${from}`] } },
+      });
+      if (startContact) {
+        await db.contact.update({ where: { id: startContact.id }, data: { subscribed: true } });
+        await sendWhatsApp(from, "You have been resubscribed successfully!");
+      }
+      return NextResponse.json({ status: "resubscribed" });
+    }
+
     // Find workspace via the phone number ID that received the message
     const displayPhoneNumberId = value.metadata?.phone_number_id;
 

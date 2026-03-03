@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { compareAsc } from "date-fns";
 
 export async function PATCH(req, context) {
   try {
@@ -21,6 +22,7 @@ export async function PATCH(req, context) {
         name: data.name ?? contact.name,
         phone: data.phone ?? contact.phone,
         email: data.email ?? contact.email,
+        company: data.company ?? contact.company,
         notes: data.notes ?? contact.notes,
       },
     });

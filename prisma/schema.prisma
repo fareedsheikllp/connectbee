@@ -116,6 +116,7 @@ model Contact {
   name        String?
   email       String?
   notes       String?
+  company     String?
   avatar      String?
   tags        String[]
   attributes  Json     @default("{}")

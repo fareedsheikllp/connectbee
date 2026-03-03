@@ -38,6 +38,17 @@ export async function POST(req, context) {
         const contact = recipient.contact;
         if (!contact) return;
 
+        if (!contact.subscribed) {
+          await db.broadcastRecipient.update({
+            where: { id: recipient.id },
+            data: {
+              status: "FAILED",
+              failureReason: "Contact unsubscribed",
+            },
+          });
+          return;
+        }
+
         console.log("Sending to:", contact.phone, "Message:", broadcast.message);
         const result = await sendWhatsApp(contact.phone, broadcast.message);
         console.log("Send result:", JSON.stringify(result));

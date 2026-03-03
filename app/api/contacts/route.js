@@ -29,7 +29,7 @@ export async function POST(req) {
     });
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
-    const { name, phone, email, notes } = await req.json();
+    const { name, phone, email, notes, company } = await req.json();
     if (!name || !phone) return NextResponse.json({ error: "Name and phone are required" }, { status: 400 });
 
     // Check duplicate phone
@@ -39,7 +39,7 @@ export async function POST(req) {
     if (existing) return NextResponse.json({ error: "Phone number already exists" }, { status: 409 });
 
     const contact = await db.contact.create({
-      data: { workspaceId: workspace.id, name, phone, email: email || "", notes: notes || "" },
+      data: { workspaceId: workspace.id, name, phone, email: email || "", notes: notes || "", company: company || "" },
     });
 
     return NextResponse.json(contact, { status: 201 });

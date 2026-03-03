@@ -44,6 +44,7 @@ function ContactForm({ initial = {}, onSubmit, loading }) {
     name: initial.name || "",
     phone: initial.phone || "",
     email: initial.email || "",
+    company: initial.company || "",
     notes: initial.notes || "",
   });
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -57,11 +58,14 @@ function ContactForm({ initial = {}, onSubmit, loading }) {
       <Field label="Full Name *">
         <input className={inputCls} value={form.name} onChange={set("name")} placeholder="Jane Smith" />
       </Field>
-      <Field label="Phone Number *" hint="Include country code — e.g. +16471234567">
-        <input className={inputCls} value={form.phone} onChange={set("phone")} placeholder="+16471234567" />
+      <Field label="Phone Number *" hint="Include country code without (+) — e.g. 16471234567">
+        <input className={inputCls} value={form.phone} onChange={set("phone")} placeholder="16471234567" />
       </Field>
       <Field label="Email">
         <input className={inputCls} type="email" value={form.email} onChange={set("email")} placeholder="jane@example.com" />
+      </Field>
+      <Field label="Company">
+        <input className={inputCls} value={form.company} onChange={set("company")} placeholder="Company Name" />
       </Field>
       <Field label="Notes">
         <textarea className={`${inputCls} resize-none`} rows={3} value={form.notes} onChange={set("notes")} placeholder="Any notes about this contact..." />
@@ -408,6 +412,7 @@ export default function ContactsPage() {
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Name</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Phone</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden md:table-cell">Email</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden md:table-cell">Company</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden lg:table-cell">Notes</th>
                     <th className="w-24 px-5 py-3" />
                   </tr>
@@ -421,10 +426,16 @@ export default function ContactsPage() {
                             {c.name[0].toUpperCase()}
                           </div>
                           <span className="font-medium text-ink-800">{c.name}</span>
+                          {!c.subscribed && (
+                            <span className="ml-2 text-[10px] font-semibold bg-red-100 text-red-500 px-2 py-0.5 rounded-full">
+                              Unsubscribed
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-ink-600">{c.phone}</td>
                       <td className="px-5 py-3.5 text-ink-500 hidden md:table-cell">{c.email || "—"}</td>
+                      <td className="px-5 py-3.5 text-ink-500 hidden md:table-cell">{c.company || "—"}</td>
                       <td className="px-5 py-3.5 text-ink-400 text-xs hidden lg:table-cell">
                         <span className="block max-w-[160px] truncate">{c.notes || "—"}</span>
                       </td>

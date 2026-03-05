@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Search, Users, Trash2, Pencil, X,
-  UsersRound, ChevronDown, ChevronUp, Check, UserPlus,
+  UsersRound, ChevronDown, ChevronUp, Check, UserPlus, Upload, Download, AlertCircle, CheckCircle2, Bell, BellOff,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -37,7 +37,315 @@ function Field({ label, hint, children }) {
     </div>
   );
 }
+// ── CSV Import Modal ───────────────────────────────────────────────────────
+function CSVImportModal({ groups = [], onClose, onImportDone }) {
+  const [step, setStep] = useState("upload"); // "upload" | "preview" | "group" | "importing" | "done"
+  const [rows, setRows] = useState([]);
+  const [errors, setErrors] = useState([]);
+  const [groupAction, setGroupAction] = useState("none"); // "none" | "new" | "existing"
+  const [newGroupName, setNewGroupName] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState(null);
+  const fileRef = useRef(null);
 
+  const TEMPLATE_HEADERS = ["name", "phone", "email", "company", "notes"];
+
+  const downloadTemplate = () => {
+    const csv = [
+      TEMPLATE_HEADERS.join(","),
+      "Jane Smith,16471234567,jane@example.com,Acme Corp,VIP customer",
+      "John Doe,14165550123,john@example.com,,",
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "contacts_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const parseCSV = (text) => {
+    const lines = text.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length < 2) return { rows: [], errors: ["CSV must have a header row and at least one data row."] };
+
+    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/['"]/g, ""));
+    const nameIdx = headers.indexOf("name");
+    const phoneIdx = headers.indexOf("phone");
+    const emailIdx = headers.indexOf("email");
+    const companyIdx = headers.indexOf("company");
+    const notesIdx = headers.indexOf("notes");
+
+    if (nameIdx === -1 || phoneIdx === -1) {
+      return { rows: [], errors: ["CSV must have 'name' and 'phone' columns."] };
+    }
+
+    const parsed = [];
+    const errs = [];
+
+    lines.slice(1).forEach((line, i) => {
+      const cols = line.split(",").map((c) => c.trim().replace(/^["']|["']$/g, ""));
+      const name = cols[nameIdx] || "";
+      const phone = cols[phoneIdx] || "";
+      if (!name || !phone) {
+        errs.push(`Row ${i + 2}: missing name or phone — skipped`);
+        return;
+      }
+      parsed.push({
+        name,
+        phone,
+        email: emailIdx !== -1 ? cols[emailIdx] || "" : "",
+        company: companyIdx !== -1 ? cols[companyIdx] || "" : "",
+        notes: notesIdx !== -1 ? cols[notesIdx] || "" : "",
+      });
+    });
+
+    return { rows: parsed, errors: errs };
+  };
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const { rows: parsed, errors: errs } = parseCSV(ev.target.result);
+      setRows(parsed);
+      setErrors(errs);
+      if (parsed.length > 0) setStep("preview");
+      else toast.error(errs[0] || "No valid rows found");
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    setStep("importing");
+    let created = 0, skipped = 0, failed = 0;
+
+    for (const row of rows) {
+      try {
+        const res = await fetch("/api/contacts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(row),
+        });
+        if (res.ok) created++;
+        else if (res.status === 409) skipped++;
+        else failed++;
+      } catch { failed++; }
+    }
+
+    // Handle group assignment
+    if (groupAction !== "none" && created > 0) {
+      try {
+        // Fetch all contacts to find the ones we just created
+        const allRes = await fetch("/api/contacts");
+        const allContacts = await allRes.json();
+        const phones = new Set(rows.map((r) => r.phone));
+        const newContactIds = allContacts
+          .filter((c) => phones.has(c.phone))
+          .map((c) => c.id);
+
+        if (groupAction === "new" && newGroupName.trim()) {
+          await fetch("/api/groups", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: newGroupName.trim(), description: "", contactIds: newContactIds }),
+          });
+        } else if (groupAction === "existing" && selectedGroupId) {
+          const grpRes = await fetch(`/api/groups/${selectedGroupId}`);
+          const grp = await grpRes.json();
+          const existingIds = (grp.members || []).map((m) => m.contactId || m.contact?.id);
+          const mergedIds = [...new Set([...existingIds, ...newContactIds])];
+          await fetch(`/api/groups/${selectedGroupId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contactIds: mergedIds }),
+          });
+        }
+      } catch (e) {
+        console.error("Group assignment failed:", e);
+      }
+    }
+
+    setResult({ created, skipped, failed });
+    setImporting(false);
+    setStep("done");
+    onImportDone();
+  };
+
+  return (
+    <Modal title="Import Contacts from CSV" onClose={onClose}>
+      {/* STEP: Upload */}
+      {step === "upload" && (
+        <div className="space-y-5">
+          <div className="rounded-xl bg-brand-50 border border-brand-100 px-4 py-3">
+            <p className="text-xs text-brand-700 leading-relaxed">
+              Your CSV must have <strong>name</strong> and <strong>phone</strong> columns. Optional: email, company, notes.
+            </p>
+          </div>
+          <button onClick={downloadTemplate}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-surface-200 text-sm font-medium text-ink-600 hover:border-brand-300 hover:text-brand-600 transition-colors">
+            <Download size={14} />
+            Download Template CSV
+          </button>
+          <div
+            onClick={() => fileRef.current?.click()}
+            className="border-2 border-dashed border-surface-200 rounded-xl py-10 flex flex-col items-center gap-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50 transition-all">
+            <div className="w-12 h-12 rounded-full bg-surface-100 flex items-center justify-center">
+              <Upload size={20} className="text-ink-400" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium text-ink-700">Click to upload your CSV</p>
+              <p className="text-xs text-ink-400 mt-0.5">or drag and drop</p>
+            </div>
+            <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFile} />
+          </div>
+        </div>
+      )}
+
+      {/* STEP: Preview */}
+      {step === "preview" && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-ink-700">
+            <CheckCircle2 size={16} className="text-green-500 flex-shrink-0" />
+            <span><strong>{rows.length}</strong> contacts ready to import</span>
+          </div>
+          {errors.length > 0 && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 space-y-1">
+              {errors.map((e, i) => (
+                <p key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
+                  <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />{e}
+                </p>
+              ))}
+            </div>
+          )}
+          {/* Preview table */}
+          <div className="border border-surface-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-surface-50 border-b border-surface-100">
+                <tr>
+                  {["Name", "Phone", "Email", "Company"].map((h) => (
+                    <th key={h} className="text-left px-3 py-2 text-ink-400 font-semibold uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-100">
+                {rows.slice(0, 20).map((r, i) => (
+                  <tr key={i} className="hover:bg-surface-50">
+                    <td className="px-3 py-2 text-ink-800 font-medium truncate max-w-[80px]">{r.name}</td>
+                    <td className="px-3 py-2 text-ink-600">{r.phone}</td>
+                    <td className="px-3 py-2 text-ink-500 truncate max-w-[80px]">{r.email || "—"}</td>
+                    <td className="px-3 py-2 text-ink-500 truncate max-w-[80px]">{r.company || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {rows.length > 20 && (
+              <p className="text-center text-xs text-ink-400 py-2">...and {rows.length - 20} more</p>
+            )}
+          </div>
+
+          {/* Group assignment */}
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-ink-600">Add imported contacts to a group? (optional)</p>
+            <div className="space-y-2">
+              {[
+                { value: "none", label: "No group" },
+                { value: "new", label: "Create a new group" },
+                { value: "existing", label: "Add to existing group" },
+              ].map((opt) => (
+                <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${groupAction === opt.value ? "border-brand-500 bg-brand-500" : "border-surface-300"}`}>
+                    {groupAction === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                  <span className="text-sm text-ink-700" onClick={() => setGroupAction(opt.value)}>{opt.label}</span>
+                </label>
+              ))}
+            </div>
+
+            {groupAction === "new" && (
+              <input
+                className={inputCls}
+                placeholder="Group name e.g. Imported March 2025"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+              />
+            )}
+            {groupAction === "existing" && (
+              <select
+                className={inputCls}
+                value={selectedGroupId}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+              >
+                <option value="">Select a group...</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={() => setStep("upload")}
+              className="flex-1 py-2.5 rounded-xl border border-surface-200 text-sm font-medium text-ink-600 hover:bg-surface-50 transition-colors">
+              Back
+            </button>
+            <button onClick={handleImport}
+              className="flex-1 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+              Import {rows.length} Contacts
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* STEP: Importing */}
+      {step === "importing" && (
+        <div className="py-10 flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center animate-pulse">
+            <Upload size={20} className="text-brand-500" />
+          </div>
+          <p className="text-sm font-medium text-ink-700">Importing contacts...</p>
+          <p className="text-xs text-ink-400">Please don't close this window</p>
+        </div>
+      )}
+
+      {/* STEP: Done */}
+      {step === "done" && result && (
+        <div className="space-y-5">
+          <div className="py-6 flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+              <CheckCircle2 size={22} className="text-green-500" />
+            </div>
+            <p className="text-sm font-semibold text-ink-800">Import complete!</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl bg-green-50 border border-green-100 py-3 text-center">
+              <p className="text-2xl font-bold text-green-600">{result.created}</p>
+              <p className="text-[11px] text-green-700 font-medium mt-0.5">Added</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 border border-amber-100 py-3 text-center">
+              <p className="text-2xl font-bold text-amber-600">{result.skipped}</p>
+              <p className="text-[11px] text-amber-700 font-medium mt-0.5">Skipped</p>
+            </div>
+            <div className="rounded-xl bg-red-50 border border-red-100 py-3 text-center">
+              <p className="text-2xl font-bold text-red-500">{result.failed}</p>
+              <p className="text-[11px] text-red-600 font-medium mt-0.5">Failed</p>
+            </div>
+          </div>
+          {result.skipped > 0 && (
+            <p className="text-xs text-ink-400 text-center">Skipped = phone number already exists</p>
+          )}
+          <button onClick={onClose}
+            className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+            Done
+          </button>
+        </div>
+      )}
+    </Modal>
+  );
+}
 // ── Contact Form ───────────────────────────────────────────────────────────
 function ContactForm({ initial = {}, onSubmit, loading }) {
   const [form, setForm] = useState({
@@ -200,7 +508,14 @@ function GroupCard({ group, onEdit, onDelete }) {
                 {(m.contact?.name || "?")[0].toUpperCase()}
               </div>
               <span className="text-sm text-ink-700 flex-1 truncate">{m.contact?.name}</span>
-              <span className="text-xs text-ink-400">{m.contact?.phone}</span>
+              <div className="flex items-center gap-4">
+                {m.contact?.subscribed === false && (
+                  <span className="text-[10px] font-semibold bg-red-100 text-red-500 px-2 py-0.5 rounded-full">
+                    Unsubscribed
+                  </span>
+                )}
+                <span className="text-xs text-ink-400">{m.contact?.phone}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -238,6 +553,32 @@ export default function ContactsPage() {
   const [tab, setTab] = useState("contacts");
   const [modal, setModal] = useState(null);
   const close = () => setModal(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  const toggleSelect = (id) =>
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+
+  const toggleSelectAll = () =>
+    setSelectedIds(selectedIds.length === filtered.length ? [] : filtered.map((c) => c.id));
+
+  const bulkToggleSubscribed = async (subscribedValue) => {
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          fetch(`/api/contacts/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subscribed: subscribedValue }),
+          })
+        )
+      );
+      toast.success(`${selectedIds.length} contact${selectedIds.length > 1 ? "s" : ""} ${subscribedValue ? "resubscribed" : "unsubscribed"}`);
+      setSelectedIds([]);
+      fetchAll();
+    } catch {
+      toast.error("Something went wrong");
+    }
+  };
 
   const fetchAll = async () => {
     setLoading(true);
@@ -318,6 +659,20 @@ export default function ContactsPage() {
       toast.success("Group deleted"); close(); fetchAll();
     } catch (e) { toast.error(e.message); }
   };
+  const toggleSubscribed = async (contact) => {
+    try {
+      const res = await fetch(`/api/contacts/${contact.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscribed: !contact.subscribed }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      toast.success(contact.subscribed ? "Contact unsubscribed" : "Contact resubscribed");
+      fetchAll();
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -335,6 +690,13 @@ export default function ContactsPage() {
           >
             <UsersRound size={15} />
             New Group
+          </button>
+          <button
+            onClick={() => setModal({ type: "importCSV" })}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-surface-200 text-ink-700 rounded-xl text-sm font-medium hover:border-brand-300 hover:text-brand-600 transition-colors"
+          >
+            <Upload size={15} />
+            Import CSV
           </button>
           <button
             onClick={() => setModal({ type: "addContact" })}
@@ -376,6 +738,32 @@ export default function ContactsPage() {
       {/* Contacts Tab */}
       {tab === "contacts" && (
         <div className="space-y-4">
+          {selectedIds.length > 0 && (
+            <div className="flex items-center justify-between bg-brand-50 border border-brand-200 rounded-xl px-4 py-3">
+              <span className="text-sm font-medium text-brand-700">
+                {selectedIds.length} contact{selectedIds.length > 1 ? "s" : ""} selected
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => bulkToggleSubscribed(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500 text-white text-xs font-medium hover:bg-green-600 transition-colors">
+                  <Bell size={12} />
+                  Resubscribe
+                </button>
+                <button
+                  onClick={() => bulkToggleSubscribed(false)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium hover:bg-amber-600 transition-colors">
+                  <BellOff size={12} />
+                  Unsubscribe
+                </button>
+                <button
+                  onClick={() => setSelectedIds([])}
+                  className="p-1.5 rounded-lg text-brand-500 hover:bg-brand-100 transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          )}
           <div className="relative">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-300 pointer-events-none" />
             <input value={search} onChange={(e) => setSearch(e.target.value)}
@@ -409,6 +797,19 @@ export default function ContactsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-surface-100 bg-surface-50">
+                    <th className="px-5 py-3 w-10">
+                      <div
+                        onClick={toggleSelectAll}
+                        className={`w-4 h-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                          filtered.length > 0 && selectedIds.length === filtered.length
+                            ? "bg-brand-500 border-brand-500"
+                            : "border-surface-300 hover:border-brand-400"
+                        }`}>
+                        {filtered.length > 0 && selectedIds.length === filtered.length && (
+                          <Check size={9} className="text-white" strokeWidth={3} />
+                        )}
+                      </div>
+                    </th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Name</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Phone</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden md:table-cell">Email</th>
@@ -419,8 +820,21 @@ export default function ContactsPage() {
                 </thead>
                 <tbody className="divide-y divide-surface-100">
                   {filtered.map((c) => (
-                    <tr key={c.id} className="hover:bg-surface-50 transition-colors group">
-                      <td className="px-5 py-3.5">
+                      <tr key={c.id} className={`hover:bg-surface-50 transition-colors group ${selectedIds.includes(c.id) ? "bg-brand-50" : ""}`}>
+                        <td className="px-5 py-3.5 w-10">
+                          <div
+                            onClick={() => toggleSelect(c.id)}
+                            className={`w-4 h-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                              selectedIds.includes(c.id)
+                                ? "bg-brand-500 border-brand-500"
+                                : "border-surface-200 hover:border-brand-400"
+                            }`}>
+                            {selectedIds.includes(c.id) && (
+                              <Check size={9} className="text-white" strokeWidth={3} />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-600 flex-shrink-0">
                             {c.name[0].toUpperCase()}
@@ -440,16 +854,26 @@ export default function ContactsPage() {
                         <span className="block max-w-[160px] truncate">{c.notes || "—"}</span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
-                          <button onClick={() => setModal({ type: "editContact", data: c })}
-                            className="p-1.5 rounded-lg text-ink-400 hover:text-brand-600 hover:bg-brand-50 transition-colors">
-                            <Pencil size={14} />
-                          </button>
-                          <button onClick={() => setModal({ type: "deleteContact", data: c })}
-                            className="p-1.5 rounded-lg text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                        <button
+                          onClick={() => toggleSubscribed(c)}
+                          title={c.subscribed ? "Unsubscribe" : "Resubscribe"}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            c.subscribed
+                              ? "text-ink-400 hover:text-amber-500 hover:bg-amber-50"
+                              : "text-red-400 hover:text-green-500 hover:bg-green-50"
+                          }`}>
+                          {c.subscribed ? <BellOff size={14} /> : <Bell size={14} />}
+                        </button>
+                        <button onClick={() => setModal({ type: "editContact", data: c })}
+                          className="p-1.5 rounded-lg text-ink-400 hover:text-brand-600 hover:bg-brand-50 transition-colors">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => setModal({ type: "deleteContact", data: c })}
+                          className="p-1.5 rounded-lg text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                       </td>
                     </tr>
                   ))}
@@ -526,6 +950,13 @@ export default function ContactsPage() {
         <Modal title="Delete Group" onClose={close}>
           <DeleteConfirm name={modal.data.name} onCancel={close} onConfirm={deleteGroup} />
         </Modal>
+      )}
+      {modal?.type === "importCSV" && (
+        <CSVImportModal
+          groups={groups}
+          onClose={close}
+          onImportDone={() => { close(); fetchAll(); }}
+        />
       )}
     </div>
   );

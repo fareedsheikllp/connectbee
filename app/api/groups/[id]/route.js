@@ -1,7 +1,26 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+export async function GET(req, context) {
+  try {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const { id } = await context.params;
+
+    const group = await db.contactGroup.findFirst({
+      where: { id, workspace: { userId: session.user.id } },
+      include: { members: { include: { contact: true } } },
+    });
+
+    if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    return NextResponse.json(group);
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
 export async function PATCH(req, context) {
   try {
     const session = await auth();

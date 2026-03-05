@@ -24,6 +24,7 @@ export async function PATCH(req, context) {
         email: data.email ?? contact.email,
         company: data.company ?? contact.company,
         notes: data.notes ?? contact.notes,
+        subscribed: data.subscribed ?? contact.subscribed,
       },
     });
 

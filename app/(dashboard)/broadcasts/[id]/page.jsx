@@ -437,7 +437,7 @@ export default function BroadcastDetailPage() {
                 {[
                   { icon: BarChart2,     label: "Status",     value: <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.pill}`}>{cfg.label}</span> },
                   { icon: Calendar,      label: "Created",    value: new Date(broadcast.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) },
-                  { icon: Users,         label: "Recipients", value: `${total} contact${total !== 1 ? "s" : ""}` },
+                  ...(broadcast.scheduledAt ? [{ icon: Clock, label: "Scheduled for", value: new Date(broadcast.scheduledAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) }] : []),                  { icon: Users,         label: "Recipients", value: `${total} contact${total !== 1 ? "s" : ""}` },
                   { icon: MessageSquare, label: "Msg length", value: `${broadcast.message?.length || 0} chars` },
                 ].map((row, i) => {
                   const Icon = row.icon;

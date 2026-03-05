@@ -360,9 +360,28 @@ useEffect(() => {
   const filteredContacts = contacts.filter((c) =>
     !contactSearch || c.name?.toLowerCase().includes(contactSearch.toLowerCase()) || c.phone?.includes(contactSearch)
   );
+async function saveDraft() {
+  if (!name.trim() || !message.trim()) return;
+  setSaving(true);
+  const res = await fetch("/api/broadcasts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: name.trim(),
+      message: message.trim(),
+      mediaUrl: mediaUrl || null,
+      contactIds: selectedIds,
+      scheduledAt: null,
+      status: "draft",
+      chatbotIds: attachedBots.map(b => b.id),
+    }),
+  });
+  if (res.ok) router.push("/broadcasts");
+  else setSaving(false);
+}
 
-  async function handleSubmit() {
-    if (!selectedIds.length) return;
+async function handleSubmit() {
+  if (!selectedIds.length) return;
     setSaving(true);
     const res = await fetch("/api/broadcasts", {
       method: "POST",
@@ -577,7 +596,13 @@ useEffect(() => {
                     )}
                   </div>
                 </div>
-
+                <button
+                  onClick={saveDraft}
+                  disabled={!name.trim() || !message.trim() || saving}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all mb-2"
+                >
+                  Save as Draft
+                </button>
                 <button
                   onClick={goStep2}
                   disabled={!name.trim() || !message.trim()}

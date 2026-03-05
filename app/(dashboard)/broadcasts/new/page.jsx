@@ -292,7 +292,6 @@ export default function NewBroadcastPage() {
   const [message, setMessage] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [sendNow, setSendNow] = useState(true);
-  const [attachedBots, setAttachedBots] = useState([]);
   const [showVars, setShowVars] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showCatalogPicker, setShowCatalogPicker] = useState(false);
@@ -305,7 +304,17 @@ export default function NewBroadcastPage() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [contactSearch, setContactSearch] = useState("");
   const [audienceLoaded, setAudienceLoaded] = useState(false);
+const [attachedBots, setAttachedBots] = useState([]);
 
+useEffect(() => {
+  fetch("/api/chatbot")
+    .then(r => r.json())
+    .then(d => {
+      const list = Array.isArray(d) ? d : d.chatbots || [];
+      const defaultBots = list.filter(b => b.isDefault);
+      if (defaultBots.length > 0) setAttachedBots(defaultBots);
+    });
+}, []);
   function loadAudience() {
     if (audienceLoaded) return;
     Promise.all([

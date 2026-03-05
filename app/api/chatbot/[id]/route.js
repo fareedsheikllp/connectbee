@@ -27,6 +27,7 @@ export async function PATCH(req, context) {
       where: { id, workspace: { userId: session.user.id } },
     });
     if (!chatbot) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     const updated = await db.chatbot.update({
       where: { id },
       data: {
@@ -34,6 +35,7 @@ export async function PATCH(req, context) {
         description: data.description ?? chatbot.description,
         active: data.active !== undefined ? data.active : chatbot.active,
         flow: data.flow ?? chatbot.flow,
+        isDefault: data.isDefault !== undefined ? data.isDefault : chatbot.isDefault,
       },
     });
     return NextResponse.json(updated);

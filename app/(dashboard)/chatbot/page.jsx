@@ -70,7 +70,18 @@ export default function ChatbotPage() {
     } catch { toast.error("Something went wrong"); }
     finally { setDeleting(null); }
   }
-
+async function setDefault(id, current) {
+  try {
+    const res = await fetch(`/api/chatbot/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isDefault: !current }),
+    });
+    if (!res.ok) { toast.error("Failed to update"); return; }
+    toast.success(!current ? "Set as default!" : "Default removed");
+    setChatbots(p => p.map(c => c.id === id ? { ...c, isDefault: !current } : c));
+  } catch { toast.error("Something went wrong"); }
+}
   return (
     <div className="space-y-6 animate-fade-up">
       {/* Header */}
@@ -157,10 +168,20 @@ export default function ChatbotPage() {
                   </td>
                   <td className="td text-ink-400 text-xs">{new Date(bot.createdAt).toLocaleDateString()}</td>
                   <td className="td">
-                    <div className="flex items-center gap-2">
-                      <Link href={`/chatbot/${bot.id}`} className="btn-secondary btn-sm gap-1.5">
-                        <Zap size={13} /> Edit Flow
-                      </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/chatbot/${bot.id}`} className="btn-secondary btn-sm gap-1.5">
+                      <Zap size={13} /> Edit Flow
+                    </Link>
+                    <button
+                        onClick={() => setDefault(bot.id, bot.isDefault)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                          bot.isDefault
+                            ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+                            : "border-surface-200 text-ink-400 hover:border-amber-300 hover:text-amber-600 hover:bg-amber-50"
+                        }`}
+                      >
+                        {bot.isDefault ? "✓ Default" : "Set Default"}
+                      </button>
                       <button
                         onClick={() => toggleActive(bot.id, bot.active)}
                         disabled={toggling === bot.id}

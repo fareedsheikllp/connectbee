@@ -11,6 +11,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,11 +38,14 @@ function LoginForm() {
     if (res?.error) {
       toast.error("Invalid email or password.");
       setErrors({ password: "Invalid email or password" });
-    } else {
-      toast.success("Welcome back!");
-      router.push(callbackUrl);
-      router.refresh();
-    }
+      } else {
+        toast.success("Welcome back!");
+        const destination = form.email.toLowerCase() === ADMIN_EMAIL?.toLowerCase()
+          ? "/admin"
+          : callbackUrl;
+        router.push(destination);
+        router.refresh();
+      }
     setLoading(false);
   };
 

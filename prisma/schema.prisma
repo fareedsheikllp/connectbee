@@ -19,6 +19,9 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?   // hashed with bcrypt
+  plan                String?  @default("starter")
+  status              String?  @default("active")
+  conversationsUsed   Int?     @default(0)       
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -212,6 +215,18 @@ model Conversation {
 
   messages    Message[]
   
+}
+
+model PlanConfig {
+  id            String   @id @default(cuid())
+  planKey       String   @unique // "trial", "starter", "growth", "enterprise"
+  label         String
+  priceLabel    String
+  price         Float
+  conversations Int
+  flows         Int
+  agents        Int
+  updatedAt     DateTime @updatedAt
 }
 
 enum ConversationStatus {

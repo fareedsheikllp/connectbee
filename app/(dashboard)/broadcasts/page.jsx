@@ -148,7 +148,7 @@ export default function BroadcastsPage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100">
@@ -228,7 +228,7 @@ export default function BroadcastsPage() {
                           <button
                             onClick={(e) => handleDelete(e, b.id)}
                             disabled={deleting === b.id}
-                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
                           >
                             <Trash2 size={14} />
                           </button>

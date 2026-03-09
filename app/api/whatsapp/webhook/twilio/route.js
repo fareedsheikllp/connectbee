@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 export async function POST(req) {
   try {
     const text = await req.text();
+        console.log("Twilio status webhook hit:", text); 
     const params = new URLSearchParams(text);
 
     const messageSid = params.get("MessageSid");

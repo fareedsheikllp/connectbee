@@ -312,6 +312,7 @@ model BroadcastRecipient {
   sentAt      DateTime?
   failureReason  String?
   errorCode      String?
+  waMessageId  String?
 }
 
 // ─── CHATBOT ───────────────────────────────────────────────────────

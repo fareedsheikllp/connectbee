@@ -24,9 +24,31 @@ export async function POST(req) {
     const change = entry?.changes?.[0];
     const value = change?.value;
 
-    if (!value?.messages?.length) {
-      return NextResponse.json({ status: "no messages" });
-    }
+// Handle status updates (delivered, failed, read)
+if (value?.statuses?.length) {
+  const status = value.statuses[0];
+  const waMessageId = status.id;
+  const newStatus = status.status; // "delivered", "read", "failed"
+  const errorCode = status.errors?.[0]?.code?.toString();
+  const errorMessage = status.errors?.[0]?.message;
+
+  if (newStatus === "failed" && waMessageId) {
+    // Find the broadcast recipient by matching waMessageId and mark as failed
+    await db.broadcastRecipient.updateMany({
+      where: { waMessageId },
+      data: {
+        status: "FAILED",
+        failureReason: errorMessage || "Delivery failed",
+        errorCode: errorCode || null,
+      },
+    });
+  }
+  return NextResponse.json({ status: "status update processed" });
+}
+
+if (!value?.messages?.length) {
+  return NextResponse.json({ status: "no messages" });
+}
 
     const msg = value.messages[0];
     const from = msg.from; // e.g. "14375993361"

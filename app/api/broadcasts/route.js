@@ -87,6 +87,7 @@ export async function POST(req) {
               sentAt: result.success ? new Date() : null,
               failureReason: result.success ? null : (result.error ?? "Unknown error"),
               errorCode: result.success ? null : (result.code ?? null),
+              waMessageId: result.success ? result.messageId : null,
             },
           });
 

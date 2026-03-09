@@ -1,6 +1,6 @@
 // prisma/schema.prisma
 // Run: npx prisma generate && npx prisma db push
-
+// updated
 generator client {
   provider = "prisma-client-js"
 }

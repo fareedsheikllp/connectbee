@@ -749,7 +749,7 @@ async function handleSubmit() {
               <div className="bg-white rounded-2xl border border-gray-100 p-5">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Campaign</p>
                 <p className="font-bold text-gray-900 text-sm truncate">{name}</p>
-                <p className="text-xs text-gray-400 mt-1">{sendNow ? "Sends immediately" : scheduledAt ? `Scheduled for ${new Date(scheduledAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Draft"}</p>
+                <p className="text-xs text-gray-400 mt-1">{sendNow ? "Sends immediately" : scheduledAt ? `Scheduled for ${new Date(scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Draft"}</p>
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 p-5">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Recipients</p>

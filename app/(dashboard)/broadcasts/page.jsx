@@ -220,7 +220,7 @@ export default function BroadcastsPage() {
                       </td>
                       <td className="px-6 py-4 hidden lg:table-cell text-sm text-gray-400">
                         {b.scheduledAt
-                          ? new Date(b.scheduledAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                          ? new Date(b.scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
                           : new Date(b.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </td>
                       <td className="px-6 py-4">

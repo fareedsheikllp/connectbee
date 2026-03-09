@@ -391,7 +391,7 @@ async function handleSubmit() {
         message: message.trim(),
         mediaUrl: mediaUrl || null,
         contactIds: selectedIds,
-        scheduledAt: sendNow ? null : scheduledAt || null,
+        scheduledAt: sendNow ? null : scheduledAt ? new Date(scheduledAt).toISOString() : null,
         status: sendNow ? "sent" : scheduledAt ? "scheduled" : "draft",
         chatbotIds: attachedBots.map(b => b.id),
       }),

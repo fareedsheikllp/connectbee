@@ -8,7 +8,8 @@ export function useIdleTimeout(timeoutMinutes = 30) {
   const resetTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      signOut({ callbackUrl: "/login?reason=idle" });
+    console.log("Idle timeout fired, signing out...");
+    signOut({ callbackUrl: "/login?reason=idle" });
     }, timeoutMinutes * 60 * 1000);
   }, [timeoutMinutes]);
 

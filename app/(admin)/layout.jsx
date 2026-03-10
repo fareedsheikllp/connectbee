@@ -165,7 +165,7 @@ export default function AdminLayout({ children }) {
       </aside>
 
       {/* Content */}
-      <IdleTimeout minutes={30} />
+      <IdleTimeout minutes={1} />
       <main className="flex-1 ml-[220px] min-h-screen">
         {children}
       </main>

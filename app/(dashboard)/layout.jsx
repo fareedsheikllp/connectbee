@@ -2,8 +2,10 @@ import { auth } from "../../lib/auth.js";
 import { redirect } from "next/navigation";
 import Sidebar from "../../components/dashboard/Sidebar";
 import TopBar from "../../components/dashboard/TopBar";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 
 export default async function DashboardLayout({ children }) {
+  useIdleTimeout(30);
   const session = await auth();
   if (!session?.user) redirect("/login");
 

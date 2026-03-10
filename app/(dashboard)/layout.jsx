@@ -2,15 +2,15 @@ import { auth } from "../../lib/auth.js";
 import { redirect } from "next/navigation";
 import Sidebar from "../../components/dashboard/Sidebar";
 import TopBar from "../../components/dashboard/TopBar";
-import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import IdleTimeout from "@/components/IdleTimeout";
 
 export default async function DashboardLayout({ children }) {
-  useIdleTimeout(30);
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   return (
     <div className="flex h-screen bg-surface-50 overflow-hidden">
+      <IdleTimeout minutes={30} />
       <Sidebar user={session.user} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar user={session.user} />

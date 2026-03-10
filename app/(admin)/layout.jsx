@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import IdleTimeout from "@/components/IdleTimeout";
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
@@ -164,6 +165,7 @@ export default function AdminLayout({ children }) {
       </aside>
 
       {/* Content */}
+      <IdleTimeout minutes={30} />
       <main className="flex-1 ml-[220px] min-h-screen">
         {children}
       </main>

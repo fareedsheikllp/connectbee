@@ -10,7 +10,7 @@ export default async function DashboardLayout({ children }) {
 
   return (
     <div className="flex h-screen bg-surface-50 overflow-hidden">
-      <IdleTimeout minutes={1} />
+      <IdleTimeout minutes={30} />
       <Sidebar user={session.user} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar user={session.user} />

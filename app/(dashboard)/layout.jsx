@@ -21,3 +21,4 @@ export default async function DashboardLayout({ children }) {
     </div>
   );
 }
+// This file is the layout for all dashboard pages. It includes the sidebar, topbar, and idle timeout logic.

@@ -556,7 +556,11 @@ function NotesPanel({ conversationId, onClose, onNotesLoaded }) {
       });
       const data = await res.json();
       if (!res.ok) { toast.error("Failed"); return; }
-      setNotes(n => [...n, data.message]);
+      setNotes(n => {
+        const updated = [...n, data.message];
+        if (onNotesLoaded) onNotesLoaded(updated.length);
+        return updated;
+      });
       setText("");
     } catch { toast.error("Something went wrong"); }
     finally { setSaving(false); }
@@ -775,8 +779,8 @@ export default function InboxPage() {
     return new Date(b.updatedAt) - new Date(a.updatedAt);
   });
 
-  const counts = { ALL: conversations.length };
-  conversations.forEach(c => { counts[c.status] = (counts[c.status] || 0) + 1; });
+  const counts = { ALL: filtered.length };
+  filtered.forEach(c => { counts[c.status] = (counts[c.status] || 0) + 1; });
   const activeFilterCount = (priorityFilter !== "ALL" ? 1 : 0) + (labelFilter !== "ALL" ? 1 : 0);
 
   return (

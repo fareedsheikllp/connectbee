@@ -44,7 +44,7 @@ export async function POST(req, context) {
     });
     if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const { content } = await req.json();
+    const { content, isInternal } = await req.json();
     if (!content?.trim()) return NextResponse.json({ error: "Message content required" }, { status: 400 });
 
     const message = await db.message.create({
@@ -54,9 +54,10 @@ export async function POST(req, context) {
         type: "TEXT",
         content: content.trim(),
         status: "SENT",
+        isInternal: isInternal || false,
       },
     });
-await db.conversation.update({
+    await db.conversation.update({
       where: { id },
       data: { lastMessage: content.trim(), updatedAt: new Date() },
     });
@@ -65,7 +66,7 @@ await db.conversation.update({
     const contact = await db.contact.findFirst({
       where: { id: conversation.contactId },
     });
-    if (contact?.phone) {
+    if (!isInternal && contact?.phone) {
       await sendWhatsApp(contact.phone, content.trim());
     }
 

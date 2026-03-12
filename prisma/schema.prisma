@@ -99,6 +99,7 @@ model Workspace {
   contactGroups  ContactGroup[]
   integrations   Integration[]
   templates  Template[]
+  cannedResponses CannedResponse[]
 }
 
 enum Plan {
@@ -214,6 +215,9 @@ model Conversation {
   updatedAt   DateTime @updatedAt
 
   messages    Message[]
+  priority   String   @default("NONE")
+  labels     String   @default("")
+  dueAt      DateTime?
   
 }
 
@@ -249,8 +253,18 @@ model Message {
   sentAt         DateTime @default(now())
   deliveredAt    DateTime?
   readAt         DateTime?
+  isInternal Boolean @default(false)
 }
 
+model CannedResponse {
+  id          String   @id @default(cuid())
+  workspaceId String
+  shortcut    String   // e.g. "refund"
+  title       String   // e.g. "Refund Policy"
+  content     String
+  createdAt   DateTime @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+}
 enum MessageDirection {
   INBOUND
   OUTBOUND

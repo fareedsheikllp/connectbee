@@ -12,7 +12,7 @@ export async function PATCH(req, context) {
     const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
-    const { status } = await req.json();
+    const { status, priority, labels, dueAt } = await req.json();
 
     const conversation = await db.conversation.findFirst({
       where: { id, workspaceId: workspace.id },
@@ -21,7 +21,12 @@ export async function PATCH(req, context) {
 
     const updated = await db.conversation.update({
       where: { id },
-      data: { status },
+      data: {
+        ...(status !== undefined && { status }),
+        ...(priority !== undefined && { priority }),
+        ...(labels !== undefined && { labels }),
+        ...(dueAt !== undefined && { dueAt: dueAt ? new Date(dueAt) : null }),
+      },
     });
 
     return NextResponse.json({ conversation: updated });

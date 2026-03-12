@@ -76,68 +76,65 @@ export async function POST(req) {
         where: { id: { in: contactIds || [] }, subscribed: { not: false } },
       });
 
-      await Promise.all(
-        contacts.map(async (contact) => {
-          const result = await sendWhatsApp(contact.phone, message, broadcast.mediaUrl || null);
+for (const contact of contacts) {
+  const result = await sendWhatsApp(contact.phone, message, broadcast.mediaUrl || null);
 
-          await db.broadcastRecipient.updateMany({
-            where: { broadcastId: broadcast.id, contactId: contact.id },
-            data: {
-              status: result.success ? "SENT" : "FAILED",
-              sentAt: result.success ? new Date() : null,
-              failureReason: result.success ? null : (result.error ?? "Unknown error"),
-              errorCode: result.success ? null : (result.code ?? null),
-              waMessageId: result.success ? result.messageId : null,
-            },
-          });
+  await db.broadcastRecipient.updateMany({
+    where: { broadcastId: broadcast.id, contactId: contact.id },
+    data: {
+      status: result.success ? "SENT" : "FAILED",
+      sentAt: result.success ? new Date() : null,
+      failureReason: result.success ? null : (result.error ?? "Unknown error"),
+      errorCode: result.success ? null : (result.code ?? null),
+      waMessageId: result.success ? result.messageId : null,
+    },
+  });
 
-          if (result.success) {
-            try {
-              let conv = await db.conversation.findFirst({
-                where: { workspaceId: workspace.id, contactId: contact.id },
-              });
+  if (result.success) {
+    try {
+      let conv = await db.conversation.findFirst({
+        where: { workspaceId: workspace.id, contactId: contact.id },
+      });
 
-              // Use first bot id for conversation (single chatbotId field)
-              const primaryBotId = hasBots ? chatbotIds[0] : null;
+      const primaryBotId = hasBots ? chatbotIds[0] : null;
 
-              if (!conv) {
-                conv = await db.conversation.create({
-                  data: {
-                    workspaceId: workspace.id,
-                    contactId: contact.id,
-                    status: hasBots ? "BOT" : "OPEN",
-                    chatbotId: primaryBotId,
-                    lastMessage: message,
-                  },
-                });
-              } else {
-                await db.conversation.update({
-                  where: { id: conv.id },
-                  data: {
-                    lastMessage: message,
-                    updatedAt: new Date(),
-                    status: hasBots ? "BOT" : conv.status,
-                    chatbotId: primaryBotId ?? conv.chatbotId,
-                  },
-                });
-              }
+      if (!conv) {
+        conv = await db.conversation.create({
+          data: {
+            workspaceId: workspace.id,
+            contactId: contact.id,
+            status: hasBots ? "BOT" : "OPEN",
+            chatbotId: primaryBotId,
+            lastMessage: message,
+          },
+        });
+      } else {
+        await db.conversation.update({
+          where: { id: conv.id },
+          data: {
+            lastMessage: message,
+            updatedAt: new Date(),
+            status: hasBots ? "BOT" : conv.status,
+            chatbotId: primaryBotId ?? conv.chatbotId,
+          },
+        });
+      }
 
-              await db.message.create({
-                data: {
-                  conversationId: conv.id,
-                  direction: "OUTBOUND",
-                  type: "TEXT",
-                  content: message,
-                  status: "SENT",
-                  sentAt: new Date(),
-                },
-              });
-            } catch (convErr) {
-              console.error("Conversation creation failed:", convErr.message);
-            }
-          }
-        })
-      );
+      await db.message.create({
+        data: {
+          conversationId: conv.id,
+          direction: "OUTBOUND",
+          type: "TEXT",
+          content: message,
+          status: "SENT",
+          sentAt: new Date(),
+        },
+      });
+    } catch (convErr) {
+      console.error("Conversation creation failed:", convErr.message);
+    }
+  }
+}
     }
 
     return NextResponse.json(broadcast, { status: 201 });

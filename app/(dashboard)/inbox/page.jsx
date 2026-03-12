@@ -1045,20 +1045,37 @@ export default function InboxPage() {
                     <p className="text-sm text-slate-400">No messages yet in this conversation</p>
                   </div>
                 ) : (
-                  messages.map(msg => {
+                  messages.map((msg, i) => {
                     const isOut = msg.direction === "OUTBOUND";
+                    const msgDate = new Date(msg.sentAt);
+                    const prevDate = i > 0 ? new Date(messages[i - 1].sentAt) : null;
+                    const isNewDay = !prevDate || msgDate.toDateString() !== prevDate.toDateString();
+                    const today = new Date();
+                    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+                    const dateLabel = msgDate.toDateString() === today.toDateString() ? "Today"
+                    : msgDate.toDateString() === yesterday.toDateString() ? "Yesterday"
+                    : msgDate.toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" }).toUpperCase();
                     return (
-                      <div key={msg.id} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
+                      <div key={msg.id}>
+                        {isNewDay && (
+                          <div className="flex items-center justify-center my-3">
+                            <span className="text-[11px] text-slate-500 bg-white/90 px-4 py-1.5 rounded-lg shadow-sm font-medium tracking-wide">
+                              {dateLabel}
+                            </span>
+                          </div>
+                        )}
+                        <div className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[72%] rounded-2xl px-4 py-2.5 shadow-sm ${isOut ? "bg-brand-100 rounded-br-sm" : "bg-white rounded-bl-sm border border-slate-100"}`}>
                           <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                           <div className={`flex items-center gap-1 mt-1.5 ${isOut ? "justify-end" : "justify-start"}`}>
                             <span className="text-[10px] text-slate-400">
-                              {new Date(msg.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {new Date(msg.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                             {isOut && <CheckCheck size={11} className={msg.status === "READ" ? "text-brand-500" : "text-slate-300"} />}
                           </div>
                         </div>
                       </div>
+                    </div>
                     );
                   })
                 )}

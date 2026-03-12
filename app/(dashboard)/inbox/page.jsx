@@ -864,7 +864,13 @@ export default function InboxPage() {
                 <button key={conv.id}
                   onClick={() => { setSelected(conv); setLastSeenAt(p => ({ ...p, [conv.id]: new Date().toISOString() })); }}
                   className={`w-full text-left px-4 py-3.5 border-b border-slate-50 transition-all ${
-                    isActive ? "bg-brand-50 border-l-[3px] border-l-brand-500" : "hover:bg-slate-50"
+                    isActive ? "bg-brand-50 border-l-[3px] border-l-brand-500" :
+                    conv.priority === "URGENT" ? "bg-red-50 border-l-[3px] border-l-red-400 hover:bg-red-100" :
+                    conv.priority === "HIGH"   ? "bg-orange-50 border-l-[3px] border-l-orange-400 hover:bg-orange-100" :
+                    conv.priority === "MEDIUM" ? "bg-amber-50 border-l-[3px] border-l-amber-400 hover:bg-amber-100" :
+                    conv.priority === "LOW"    ? "bg-sky-50 border-l-[3px] border-l-sky-400 hover:bg-sky-100" :
+                    hasBadge ? "bg-emerald-50 border-l-[3px] border-l-emerald-400 hover:bg-emerald-100" :
+                    "hover:bg-slate-50"
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -880,12 +886,18 @@ export default function InboxPage() {
                           <span className={`text-sm truncate ${hasBadge ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}>
                             {conv.contact?.name || conv.contact?.phone || "Unknown"}
                           </span>
-                          {conv.priority && conv.priority !== "NONE" && (
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${pc.dot}`} title={`${pc.label} priority`} />
-                          )}
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                          {hasBadge && <span className="w-2 h-2 rounded-full bg-brand-500" />}
+                          {conv.priority && conv.priority !== "NONE" && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                              conv.priority === "URGENT" ? "bg-red-100 text-red-600" :
+                              conv.priority === "HIGH"   ? "bg-orange-100 text-orange-600" :
+                              conv.priority === "MEDIUM" ? "bg-amber-100 text-amber-600" :
+                              "bg-sky-100 text-sky-600"
+                            }`}>
+                              {pc.label.toUpperCase()}
+                            </span>
+                          )}
                           <span className="text-[10px] text-slate-400">{timeAgo(conv.updatedAt)}</span>
                         </div>
                       </div>

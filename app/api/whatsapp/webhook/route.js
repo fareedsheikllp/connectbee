@@ -2,117 +2,59 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendWhatsApp } from "@/lib/whatsapp";
 
-// ─── Webhook verification (GET) ───────────────────────────────────
-export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const mode = searchParams.get("hub.mode");
-  const token = searchParams.get("hub.verify_token");
-  const challenge = searchParams.get("hub.challenge");
-
-  if (mode === "subscribe" && token === process.env.META_VERIFY_TOKEN) {
-    return new NextResponse(challenge, { status: 200 });
-  }
-  return new NextResponse("Forbidden", { status: 403 });
-}
-
-// ─── Incoming messages (POST) ─────────────────────────────────────
 export async function POST(req) {
   try {
-    const body = await req.json();
+    const text = await req.text();
+    const params = new URLSearchParams(text);
 
-    const entry = body.entry?.[0];
-    const change = entry?.changes?.[0];
-    const value = change?.value;
+    const from = params.get("From")?.replace("whatsapp:+", "").replace("whatsapp:", "");
+    const body = params.get("Body")?.trim();
+    const waMessageId = params.get("MessageSid");
 
-// Handle status updates (delivered, failed, read)
-if (value?.statuses?.length) {
-  const status = value.statuses[0];
-  const waMessageId = status.id;
-  const newStatus = status.status; // "delivered", "read", "failed"
-  const errorCode = status.errors?.[0]?.code?.toString();
-  const errorMessage = status.errors?.[0]?.message;
+    if (!from || !body) return NextResponse.json({ status: "ignored" });
 
-  if (newStatus === "failed" && waMessageId) {
-    // Find the broadcast recipient by matching waMessageId and mark as failed
-    await db.broadcastRecipient.updateMany({
-      where: { waMessageId },
-      data: {
-        status: "FAILED",
-        failureReason: errorMessage || "Delivery failed",
-        errorCode: errorCode || null,
-      },
-    });
-  }
-  return NextResponse.json({ status: "status update processed" });
-}
+    // Find workspace
+    const ws = await db.workspace.findFirst();
+    if (!ws) return NextResponse.json({ status: "no workspace" });
 
-if (!value?.messages?.length) {
-  return NextResponse.json({ status: "no messages" });
-}
-
-    const msg = value.messages[0];
-    const from = msg.from; // e.g. "14375993361"
-    const text = msg.text?.body;
-    const waMessageId = msg.id;
-
-    if (!text) return NextResponse.json({ status: "non-text ignored" });
-
-    // Handle STOP / START before anything else
-    const displayPhoneNumberIdEarly = value.metadata?.phone_number_id;
-    const wsEarly = await db.workspace.findFirst({ where: { waPhoneNumberId: displayPhoneNumberIdEarly } }) ?? await db.workspace.findFirst();
-
-    if (text.trim().toUpperCase() === "STOP") {
-      const stopContact = await db.contact.findFirst({
-        where: { workspaceId: wsEarly.id, phone: { in: [from, `+${from}`] } },
+    // Handle STOP / START
+    if (body.toUpperCase() === "STOP") {
+      const contact = await db.contact.findFirst({
+        where: { workspaceId: ws.id, phone: { in: [from, `+${from}`] } },
       });
-      if (stopContact) {
-        await db.contact.update({ where: { id: stopContact.id }, data: { subscribed: false } });
+      if (contact) {
+        await db.contact.update({ where: { id: contact.id }, data: { subscribed: false } });
         await sendWhatsApp(from, "You have been unsubscribed. Send START to subscribe again.");
       }
       return NextResponse.json({ status: "unsubscribed" });
     }
 
-    if (text.trim().toUpperCase() === "START") {
-      const startContact = await db.contact.findFirst({
-        where: { workspaceId: wsEarly.id, phone: { in: [from, `+${from}`] } },
+    if (body.toUpperCase() === "START") {
+      const contact = await db.contact.findFirst({
+        where: { workspaceId: ws.id, phone: { in: [from, `+${from}`] } },
       });
-      if (startContact) {
-        await db.contact.update({ where: { id: startContact.id }, data: { subscribed: true } });
+      if (contact) {
+        await db.contact.update({ where: { id: contact.id }, data: { subscribed: true } });
         await sendWhatsApp(from, "You have been resubscribed successfully!");
       }
       return NextResponse.json({ status: "resubscribed" });
     }
 
-    // Find workspace via the phone number ID that received the message
-    const displayPhoneNumberId = value.metadata?.phone_number_id;
-
-    const workspace = await db.workspace.findFirst({
-      where: { waPhoneNumberId: displayPhoneNumberId },
-    });
-
-    // Fallback: grab first workspace if you only have one
-    const ws = workspace ?? await db.workspace.findFirst();
-    if (!ws) return NextResponse.json({ status: "no workspace" });
-
     // Find or create contact
-let contact = await db.contact.findFirst({
-  where: { 
-    workspaceId: ws.id, 
-    phone: { in: [from, `+${from}`] }  // match with or without +
-  },
-});
-
-if (!contact) {
-  contact = await db.contact.create({
-    data: {
-      workspaceId: ws.id,
-      name: value.contacts?.[0]?.profile?.name || from,
-      phone: from,  // store without + going forward
-      email: "",
-      notes: "",
-    },
-  });
-}
+    let contact = await db.contact.findFirst({
+      where: { workspaceId: ws.id, phone: { in: [from, `+${from}`] } },
+    });
+    if (!contact) {
+      contact = await db.contact.create({
+        data: {
+          workspaceId: ws.id,
+          name: from,
+          phone: from,
+          email: "",
+          notes: "",
+        },
+      });
+    }
 
     // Find or create conversation
     let conversation = await db.conversation.findFirst({
@@ -124,13 +66,17 @@ if (!contact) {
           workspaceId: ws.id,
           contactId: contact.id,
           status: "OPEN",
-          lastMessage: text,
+          lastMessage: body,
         },
       });
     } else {
       await db.conversation.update({
         where: { id: conversation.id },
-        data: { lastMessage: text, updatedAt: new Date(), status: conversation.status === "RESOLVED" ? "OPEN" : conversation.status },
+        data: {
+          lastMessage: body,
+          updatedAt: new Date(),
+          status: conversation.status === "RESOLVED" ? "OPEN" : conversation.status,
+        },
       });
     }
 
@@ -144,20 +90,22 @@ if (!contact) {
           conversationId: conversation.id,
           direction: "INBOUND",
           type: "TEXT",
-          content: text,
+          content: body,
           status: "DELIVERED",
-          sentAt: new Date(parseInt(msg.timestamp) * 1000),
+          sentAt: new Date(),
           waMessageId,
         },
       });
     }
+
+    // Run chatbot if attached
     if (conversation.chatbotId) {
       const chatbot = await db.chatbot.findFirst({
         where: { id: conversation.chatbotId, active: true },
       });
       if (chatbot?.flow) {
         const nodes = Object.values(chatbot.flow);
-        await runBotFlow(nodes, text, from, conversation.id);
+        await runBotFlow(nodes, body, from, conversation.id);
       }
     }
 
@@ -170,7 +118,6 @@ if (!contact) {
 
 async function runBotFlow(nodes, incomingMessage, phone, conversationId) {
   const msgLower = incomingMessage.toLowerCase().trim();
-
   const conditionNodes = nodes.filter(n => n.type === "condition");
 
   if (conditionNodes.length === 0) {
@@ -195,8 +142,8 @@ async function runBotFlow(nodes, incomingMessage, phone, conversationId) {
     const matchType = condNode.data?.matchType || "contains";
     const matched = keywords.some(keyword => {
       if (matchType === "contains") return msgLower.includes(keyword);
-      if (matchType === "exact")    return msgLower === keyword;
-      if (matchType === "starts")   return msgLower.startsWith(keyword);
+      if (matchType === "exact") return msgLower === keyword;
+      if (matchType === "starts") return msgLower.startsWith(keyword);
       return false;
     });
 
@@ -215,11 +162,9 @@ async function handleNode(node, phone, conversationId) {
   if (node.type === "message" && node.data?.message) {
     await sendBotMessage(node.data.message, phone, conversationId);
   }
-
   if (node.type === "delay" && node.data?.seconds) {
     await new Promise(r => setTimeout(r, node.data.seconds * 1000));
   }
-
   if (node.type === "action") {
     if (node.data?.action === "Assign to human agent") {
       await db.conversation.update({ where: { id: conversationId }, data: { status: "OPEN" } });

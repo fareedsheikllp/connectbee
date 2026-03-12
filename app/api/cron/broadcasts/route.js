@@ -40,11 +40,65 @@ export async function GET(req) {
       });
     }));
 
-    await db.broadcast.update({
-      where: { id: broadcast.id },
-      data: { status: "SENT" },
-    });
-  }
+await db.broadcast.update({
+  where: { id: broadcast.id },
+  data: { status: "SENT" },
+});
 
+// Create conversations and messages just like the direct send does
+const hasBots = broadcast.chatbotIds?.length > 0;
+const primaryBotId = hasBots ? broadcast.chatbotIds[0] : null;
+
+for (const recipient of broadcast.recipients) {
+  const contact = recipient.contact;
+  if (!contact) continue;
+  const recipientStatus = await db.broadcastRecipient.findFirst({
+    where: { broadcastId: broadcast.id, contactId: contact.id },
+  });
+  if (recipientStatus?.status !== "SENT") continue;
+
+  try {
+    let conv = await db.conversation.findFirst({
+      where: { workspaceId: broadcast.workspaceId, contactId: contact.id },
+    });
+
+    if (!conv) {
+      conv = await db.conversation.create({
+        data: {
+          workspaceId: broadcast.workspaceId,
+          contactId: contact.id,
+          status: hasBots ? "BOT" : "OPEN",
+          chatbotId: primaryBotId,
+          lastMessage: broadcast.message,
+        },
+      });
+    } else {
+      await db.conversation.update({
+        where: { id: conv.id },
+        data: {
+          lastMessage: broadcast.message,
+          updatedAt: new Date(),
+          status: hasBots ? "BOT" : conv.status,
+          chatbotId: primaryBotId ?? conv.chatbotId,
+        },
+      });
+    }
+
+    await db.message.create({
+      data: {
+        conversationId: conv.id,
+        direction: "OUTBOUND",
+        type: "TEXT",
+        content: broadcast.message,
+        status: "SENT",
+        sentAt: new Date(),
+      },
+    });
+  } catch (err) {
+    console.error("Conversation creation failed:", err.message);
+  }
+}
+
+  }
   return NextResponse.json({ processed: due.length });
 }

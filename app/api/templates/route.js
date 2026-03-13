@@ -63,10 +63,10 @@ export async function POST(req) {
 
         await db.template.update({
           where: { id: template.id },
-          data: { twilioSid: twilioData.sid, metaStatus: "PENDING" },
+          data: { metaTemplateId: twilioData.sid, metaStatus: "PENDING" },
         });
 
-        return NextResponse.json({ ...template, twilioSid: twilioData.sid, metaStatus: "PENDING" });
+        return NextResponse.json({ ...template, metaTemplateId: twilioData.sid, metaStatus: "PENDING" });
       }
     } catch (err) {
       console.error("Twilio template submission failed:", err.message);

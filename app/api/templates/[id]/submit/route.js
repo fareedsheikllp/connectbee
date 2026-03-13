@@ -40,11 +40,10 @@ export async function POST(req, context) {
         category: "UTILITY",
       }),
     });
-
-    const updated = await db.template.update({
-      where: { id },
-      data: { twilioSid: twilioData.sid, metaStatus: "PENDING" },
-    });
+const updated = await db.template.update({
+  where: { id },
+  data: { metaTemplateId: twilioData.sid, metaStatus: "PENDING" },
+});
 
     return NextResponse.json(updated);
   } catch (err) {

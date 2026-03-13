@@ -100,7 +100,16 @@ function TemplateCard({ template, onEdit, onDelete, onCopy, copied }) {
           <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border ${status.bg} ${status.border} ${status.color}`}>
             <StatusIcon size={10}/> {status.short}
           </span>
-          <span className="text-[11px] text-gray-400">{template.body.length} chars</span>
+          {(!template.metaStatus || template.metaStatus === "NONE") && (
+            <button
+              onClick={() => onSubmit(template.id)}
+              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors">
+              Submit to Meta
+            </button>
+          )}
+          {template.metaStatus && template.metaStatus !== "NONE" && (
+            <span className="text-[11px] text-gray-400">{template.body.length} chars</span>
+          )}
         </div>
       </div>
     </div>
@@ -328,6 +337,13 @@ export default function TemplatesPage() {
     setCopied(template.id);
     setTimeout(() => setCopied(null), 2000);
   }
+  async function handleSubmit(id) {
+    const res = await fetch(`/api/templates/${id}/submit`, { method: "POST" });
+    const data = await res.json();
+    if (data.metaStatus) {
+      setTemplates(p => p.map(t => t.id === id ? { ...t, metaStatus: data.metaStatus, twilioSid: data.twilioSid } : t));
+    }
+  }
 
   // Filter logic
   const STATUS_MAP = { All: null, Approved: "APPROVED", Pending: "PENDING", "Not Submitted": "NONE", Rejected: "REJECTED" };
@@ -495,12 +511,13 @@ export default function TemplatesPage() {
           {!loading && filtered.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map(t => (
-                <TemplateCard key={t.id} template={t}
-                  onEdit={t => setModal({ open: true, template: t })}
-                  onDelete={handleDelete}
-                  onCopy={handleCopy}
-                  copied={copied}
-                />
+              <TemplateCard key={t.id} template={t}
+                onEdit={t => setModal({ open: true, template: t })}
+                onDelete={handleDelete}
+                onCopy={handleCopy}
+                onSubmit={handleSubmit}
+                copied={copied}
+              />
               ))}
             </div>
           )}

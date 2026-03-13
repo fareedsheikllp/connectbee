@@ -27,7 +27,12 @@ export async function GET(req) {
       .filter(c => c && c.subscribed !== false);
 
     await Promise.all(contacts.map(async (contact) => {
-      const result = await sendWhatsApp(contact.phone, broadcast.message, broadcast.mediaUrl || null);
+    let templateSid = null;
+    if (broadcast.templateId) {
+      const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "APPROVED" } });
+      templateSid = template?.metaTemplateId || null;
+    }
+    const result = await sendWhatsApp(contact.phone, broadcast.message, broadcast.mediaUrl || null, templateSid);
       await db.broadcastRecipient.updateMany({
         where: { broadcastId: broadcast.id, contactId: contact.id },
         data: {

@@ -52,7 +52,7 @@ export async function POST(req) {
     const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
-    const { name, message, status, contactIds, scheduledAt, chatbotIds } = await req.json();
+    const { name, message, status, contactIds, scheduledAt, chatbotIds, templateId } = await req.json();
     if (!name || !message) return NextResponse.json({ error: "Name and message required" }, { status: 400 });
 
     const hasBots = Array.isArray(chatbotIds) && chatbotIds.length > 0;
@@ -65,6 +65,7 @@ export async function POST(req) {
         status: status ? status.toUpperCase() : "DRAFT",
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
         chatbotIds: hasBots ? chatbotIds : [],
+        templateId: templateId || null,
         recipients: {
           create: (contactIds || []).map((contactId) => ({ contactId })),
         },
@@ -77,7 +78,12 @@ export async function POST(req) {
       });
 
 for (const contact of contacts) {
-  const result = await sendWhatsApp(contact.phone, message, broadcast.mediaUrl || null);
+  let templateSid = null;
+if (broadcast.templateId) {
+  const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "APPROVED" } });
+  templateSid = template?.metaTemplateId || null;
+}
+const result = await sendWhatsApp(contact.phone, message, broadcast.mediaUrl || null, templateSid);
 
   await db.broadcastRecipient.updateMany({
     where: { broadcastId: broadcast.id, contactId: contact.id },

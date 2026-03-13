@@ -8,17 +8,13 @@ import {
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────
-const CATEGORIES = ["General", "Sales", "Support", "Onboarding", "Follow-up", "Promotional", "Reminder"];
+const CATEGORIES = ["MARKETING", "UTILITY", "AUTHENTICATION"];
 const VARIABLES  = ["{{name}}", "{{phone}}", "{{email}}", "{{company}}", "{{date}}", "{{amount}}"];
 
 const CAT_COLOR = {
-  General:     "bg-slate-100 text-slate-600 border-slate-200",
-  Sales:       "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Support:     "bg-sky-50 text-sky-700 border-sky-200",
-  Onboarding:  "bg-violet-50 text-violet-700 border-violet-200",
-  "Follow-up": "bg-amber-50 text-amber-700 border-amber-200",
-  Promotional: "bg-rose-50 text-rose-700 border-rose-200",
-  Reminder:    "bg-orange-50 text-orange-700 border-orange-200",
+  MARKETING:      "bg-rose-50 text-rose-700 border-rose-200",
+  UTILITY:        "bg-sky-50 text-sky-700 border-sky-200",
+  AUTHENTICATION: "bg-violet-50 text-violet-700 border-violet-200",
 };
 
 const META = {

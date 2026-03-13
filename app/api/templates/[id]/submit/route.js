@@ -37,8 +37,8 @@ export async function POST(req, context) {
       },
       body: JSON.stringify({
         name: template.name.toLowerCase().replace(/\s+/g, "_"),
-        category: "UTILITY",
-      }),
+        category: template.category || "UTILITY",
+        }),
     });
 const updated = await db.template.update({
   where: { id },

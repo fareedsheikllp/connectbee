@@ -50,7 +50,12 @@ export async function POST(req, context) {
         }
 
         console.log("Sending to:", contact.phone, "Message:", broadcast.message);
-        const result = await sendWhatsApp(contact.phone, broadcast.message);
+        let templateSid = null;
+        if (broadcast.templateId) {
+          const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "APPROVED" } });
+          templateSid = template?.metaTemplateId || null;
+        }
+        const result = await sendWhatsApp(contact.phone, broadcast.message, null, templateSid);
         console.log("Send result:", JSON.stringify(result));
 
         await db.broadcastRecipient.update({

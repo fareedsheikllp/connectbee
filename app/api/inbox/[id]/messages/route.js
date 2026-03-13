@@ -47,6 +47,13 @@ export async function POST(req, context) {
     const { content, isInternal } = await req.json();
     if (!content?.trim()) return NextResponse.json({ error: "Message content required" }, { status: 400 });
 
+    if (!isInternal && contact?.phone) {
+      const result = await sendWhatsApp(contact.phone, content.trim());
+      if (!result.success) {
+        return NextResponse.json({ error: result.error ?? "Failed to send WhatsApp message" }, { status: 500 });
+      }
+    }
+
     const message = await db.message.create({
       data: {
         conversationId: id,
@@ -57,18 +64,11 @@ export async function POST(req, context) {
         isInternal: isInternal || false,
       },
     });
+
     await db.conversation.update({
       where: { id },
       data: { lastMessage: content.trim(), updatedAt: new Date() },
     });
-
-    // Send via WhatsApp
-    const contact = await db.contact.findFirst({
-      where: { id: conversation.contactId },
-    });
-    if (!isInternal && contact?.phone) {
-      await sendWhatsApp(contact.phone, content.trim());
-    }
 
     return NextResponse.json({ message }, { status: 201 });
   } catch (err) {

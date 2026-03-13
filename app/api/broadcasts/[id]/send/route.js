@@ -68,6 +68,11 @@ export async function POST(req, context) {
           },
         });
 
+        if (!result.success) {
+          console.error(`Failed to send to ${contact.phone}:`, result.error);
+          return;
+        }
+
         if (result.success) {
           try {
             let conv = await db.conversation.findFirst({

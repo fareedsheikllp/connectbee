@@ -13,29 +13,40 @@ export async function POST(req, context) {
     });
     if (!template) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const vars = [...new Set((template.body.match(/{{[^}]+}}/g) || []))];
-    const exampleBody = vars.reduce((b, v) => {
-      const key = v.replace(/{{|}}/g, "").trim();
-      const examples = { name: "John Smith", phone: "16471234567", email: "john@example.com", company: "Acme Corp", date: "March 16 2026", amount: "$99.99" };
-      return b.replace(new RegExp(v.replace(/[{}]/g, "\\$&"), "g"), examples[key] || "Sample");
-    }, template.body);
+const namedVars = [...new Set((template.body.match(/{{[^}]+}}/g) || []))];
+const examples = { name: "John Smith", phone: "16471234567", email: "john@example.com", company: "Acme Corp", date: "March 16 2026", amount: "$99.99" };
 
-    const twilioRes = await fetch("https://content.twilio.com/v1/Content", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Basic " + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64"),
-      },
-      body: JSON.stringify({
-        friendly_name: template.name,
-        language: "en",
-        types: template.mediaUrl ? {
-          "twilio/media": { body: template.body, media: [template.mediaUrl], example: { body_text: [[exampleBody]] } }
-        } : {
-          "twilio/text": { body: template.body, example: { body_text: [[exampleBody]] } }
-        }
-      }),
-    });
+let convertedBody = template.body;
+const exampleValues = [];
+namedVars.forEach((v, i) => {
+  const key = v.replace(/{{|}}/g, "").trim();
+  convertedBody = convertedBody.replace(new RegExp(v.replace(/[{}]/g, "\\$&"), "g"), `{{${i + 1}}}`);
+  exampleValues.push(examples[key] || "Sample");
+});
+
+const twilioRes = await fetch("https://content.twilio.com/v1/Content", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Basic " + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64"),
+  },
+  body: JSON.stringify({
+    friendly_name: template.name,
+    language: "en",
+    types: template.mediaUrl ? {
+      "twilio/media": {
+        body: convertedBody,
+        media: [template.mediaUrl],
+        ...(exampleValues.length > 0 && { example: { body_text: [exampleValues] } })
+      }
+    } : {
+      "twilio/text": {
+        body: convertedBody,
+        ...(exampleValues.length > 0 && { example: { body_text: [exampleValues] } })
+      }
+    }
+  }),
+});
 
     const twilioData = await twilioRes.json();
     if (!twilioData.sid) return NextResponse.json({ error: "Twilio error" }, { status: 500 });

@@ -30,29 +30,40 @@ export async function POST(req) {
 
     // Submit to Twilio Content API
         try {
-    const vars = [...new Set((body.match(/{{[^}]+}}/g) || []))];
-    const exampleBody = vars.reduce((b, v) => {
-      const key = v.replace(/{{|}}/g, "").trim();
-      const examples = { name: "John Smith", phone: "16471234567", email: "john@example.com", company: "Acme Corp", date: "March 16 2026", amount: "$99.99" };
-      return b.replace(new RegExp(v.replace(/[{}]/g, "\\$&"), "g"), examples[key] || "Sample");
-    }, body);
+        const namedVars = [...new Set((body.match(/{{[^}]+}}/g) || []))];
+        const examples = { name: "John Smith", phone: "16471234567", email: "john@example.com", company: "Acme Corp", date: "March 16 2026", amount: "$99.99" };
 
-    const twilioRes = await fetch("https://content.twilio.com/v1/Content", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Basic " + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64"),
-      },
-      body: JSON.stringify({
-        friendly_name: name,
-        language: "en",
-        types: mediaUrl ? {
-          "twilio/media": { body, media: [mediaUrl], example: { body_text: [[exampleBody]] } }
-        } : {
-          "twilio/text": { body, example: { body_text: [[exampleBody]] } }
-        }
-      }),
-    });
+        let convertedBody = body;
+        const exampleValues = [];
+        namedVars.forEach((v, i) => {
+          const key = v.replace(/{{|}}/g, "").trim();
+          convertedBody = convertedBody.replace(new RegExp(v.replace(/[{}]/g, "\\$&"), "g"), `{{${i + 1}}}`);
+          exampleValues.push(examples[key] || "Sample");
+        });
+
+        const twilioRes = await fetch("https://content.twilio.com/v1/Content", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Basic " + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64"),
+          },
+          body: JSON.stringify({
+            friendly_name: name,
+            language: "en",
+            types: mediaUrl ? {
+              "twilio/media": {
+                body: convertedBody,
+                media: [mediaUrl],
+                ...(exampleValues.length > 0 && { example: { body_text: [exampleValues] } })
+              }
+            } : {
+              "twilio/text": {
+                body: convertedBody,
+                ...(exampleValues.length > 0 && { example: { body_text: [exampleValues] } })
+              }
+            }
+          }),
+        });
       const twilioData = await twilioRes.json();
 
       if (twilioData.sid) {

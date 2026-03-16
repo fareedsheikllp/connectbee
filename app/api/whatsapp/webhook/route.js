@@ -91,7 +91,7 @@ export async function POST(req) {
       });
     }
 
-    if (conversation.status === "BOT") {
+    if (conversation.status === "BOT" && contact.subscribed !== false) {
       const botIds = conversation.chatbotIds?.length > 0 
         ? conversation.chatbotIds 
         : conversation.chatbotId ? [conversation.chatbotId] : [];

@@ -13,7 +13,7 @@ export async function GET() {
     const conversations = await db.conversation.findMany({
       where: { workspaceId: workspace.id },
       orderBy: { updatedAt: "desc" },
-      include: { contact: { select: { id: true, name: true, phone: true, avatar: true } } },
+      include: { contact: { select: { id: true, name: true, phone: true, avatar: true, subscribed: true } } },
     });
 
     return NextResponse.json({ conversations });

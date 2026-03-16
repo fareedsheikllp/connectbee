@@ -883,9 +883,11 @@ export default function InboxPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className={`text-sm truncate ${hasBadge ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}>
-                            {conv.contact?.name || conv.contact?.phone || "Unknown"}
+                        {conv.contact?.subscribed === false && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-500 flex-shrink-0">
+                            Unsub
                           </span>
+                        )}
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                           {conv.priority && conv.priority !== "NONE" && (

@@ -83,7 +83,12 @@ if (broadcast.templateId) {
   const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "approved" } });
   templateSid = template?.metaTemplateId || null;
 }
-const result = await sendWhatsApp(contact.phone, message, broadcast.mediaUrl || null, templateSid);
+const personalizedMessage = message
+  .replace(/{{name}}/g, contact.name || "")
+  .replace(/{{phone}}/g, contact.phone || "")
+  .replace(/{{email}}/g, contact.email || "")
+  .replace(/{{company}}/g, contact.company || "");
+const result = await sendWhatsApp(contact.phone, personalizedMessage, broadcast.mediaUrl || null, templateSid);
 
   await db.broadcastRecipient.updateMany({
     where: { broadcastId: broadcast.id, contactId: contact.id },
@@ -133,7 +138,7 @@ const result = await sendWhatsApp(contact.phone, message, broadcast.mediaUrl || 
           conversationId: conv.id,
           direction: "OUTBOUND",
           type: "TEXT",
-          content: message,
+          content: personalizedMessage,
           status: "SENT",
           sentAt: new Date(),
         },

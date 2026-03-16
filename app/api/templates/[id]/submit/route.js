@@ -13,6 +13,13 @@ export async function POST(req, context) {
     });
     if (!template) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+    const vars = [...new Set((template.body.match(/{{[^}]+}}/g) || []))];
+    const exampleBody = vars.reduce((b, v) => {
+      const key = v.replace(/{{|}}/g, "").trim();
+      const examples = { name: "John Smith", phone: "16471234567", email: "john@example.com", company: "Acme Corp", date: "March 16 2026", amount: "$99.99" };
+      return b.replace(new RegExp(v.replace(/[{}]/g, "\\$&"), "g"), examples[key] || "Sample");
+    }, template.body);
+
     const twilioRes = await fetch("https://content.twilio.com/v1/Content", {
       method: "POST",
       headers: {
@@ -22,7 +29,11 @@ export async function POST(req, context) {
       body: JSON.stringify({
         friendly_name: template.name,
         language: "en",
-        types: { "twilio/text": { body: template.body } }
+        types: template.mediaUrl ? {
+          "twilio/media": { body: template.body, media: [template.mediaUrl], example: { body_text: [[exampleBody]] } }
+        } : {
+          "twilio/text": { body: template.body, example: { body_text: [[exampleBody]] } }
+        }
       }),
     });
 
@@ -38,12 +49,13 @@ export async function POST(req, context) {
       body: JSON.stringify({
         name: template.name.toLowerCase().replace(/\s+/g, "_"),
         category: template.category || "UTILITY",
-        }),
+      }),
     });
-const updated = await db.template.update({
-  where: { id },
-  data: { metaTemplateId: twilioData.sid, metaStatus: "PENDING" },
-});
+
+    const updated = await db.template.update({
+      where: { id },
+      data: { metaTemplateId: twilioData.sid, metaStatus: "PENDING" },
+    });
 
     return NextResponse.json(updated);
   } catch (err) {

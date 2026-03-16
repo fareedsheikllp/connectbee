@@ -32,7 +32,12 @@ export async function GET(req) {
       const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "approved" } });
       templateSid = template?.metaTemplateId || null;
     }
-    const result = await sendWhatsApp(contact.phone, broadcast.message, broadcast.mediaUrl || null, templateSid);
+    const personalizedMessage = broadcast.message
+      .replace(/{{name}}/g, contact.name || "")
+      .replace(/{{phone}}/g, contact.phone || "")
+      .replace(/{{email}}/g, contact.email || "")
+      .replace(/{{company}}/g, contact.company || "");
+    const result = await sendWhatsApp(contact.phone, personalizedMessage, broadcast.mediaUrl || null, templateSid);
       await db.broadcastRecipient.updateMany({
         where: { broadcastId: broadcast.id, contactId: contact.id },
         data: {
@@ -96,7 +101,7 @@ for (const recipient of broadcast.recipients) {
         conversationId: conv.id,
         direction: "OUTBOUND",
         type: "TEXT",
-        content: broadcast.message,
+        content: personalizedMessage,
         status: "SENT",
         sentAt: new Date(),
       },

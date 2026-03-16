@@ -313,10 +313,8 @@ export default function NewBroadcastPage() {
   const [sendNow, setSendNow] = useState(true);
   const [showVars, setShowVars] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-  const [showCatalogPicker, setShowCatalogPicker] = useState(false);
   const [showBotPicker, setShowBotPicker] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [mediaUrl, setMediaUrl] = useState("");
 
   // Step 2 — Audience
   const [contacts, setContacts] = useState([]);
@@ -361,11 +359,6 @@ useEffect(() => {
     setTimeout(() => { el.focus(); el.setSelectionRange(s + v.length, s + v.length); }, 0);
   }
 
-  function insertCatalogText(text, imageUrl) {
-    setMessage((prev) => (prev ? prev + "\n\n" + text : text));
-    if (imageUrl) setMediaUrl(imageUrl);
-    setShowCatalogPicker(false);
-  }
 
   function toggleGroup(g) {
     const ids = (g.members || []).map((m) => m.contactId || m.contact?.id).filter(Boolean);
@@ -389,7 +382,6 @@ async function saveDraft() {
     body: JSON.stringify({
       name: name.trim(),
       message: message.trim(),
-      mediaUrl: mediaUrl || null,
       contactIds: selectedIds,
       scheduledAt: null,
       status: "draft",
@@ -479,12 +471,6 @@ async function handleSubmit() {
                         <X size={10} />
                       </span>
                     )}
-                  </button>
-                  <button
-                    onClick={() => setShowCatalogPicker(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
-                  >
-                    <ShoppingBag size={12} /> Insert Product
                   </button>
                   <button
                     onClick={() => setShowVars((v) => !v)}
@@ -855,12 +841,6 @@ async function handleSubmit() {
         <TemplatePicker
           onSelect={(t) => { setMessage(t.body); setSelectedTemplate(t); setShowTemplatePicker(false); }}
           onClose={() => setShowTemplatePicker(false)}
-        />
-      )}
-      {showCatalogPicker && (
-        <CatalogPicker
-          onInsert={insertCatalogText}
-          onClose={() => setShowCatalogPicker(false)}
         />
       )}
       {showBotPicker && (

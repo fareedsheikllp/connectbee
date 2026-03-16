@@ -70,7 +70,13 @@ function TemplatePicker({ onSelect, onClose }) {
 
   const filtered = templates.filter((t) =>
     !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.body.toLowerCase().includes(search.toLowerCase())
-  );
+  ).sort((a, b) => {
+    const aApproved = a.metaStatus?.toLowerCase() === "approved";
+    const bApproved = b.metaStatus?.toLowerCase() === "approved";
+    if (aApproved && !bApproved) return -1;
+    if (!aApproved && bApproved) return 1;
+    return 0;
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -102,17 +108,30 @@ function TemplatePicker({ onSelect, onClose }) {
             <div className="text-center py-10 text-gray-400 text-sm">No templates found</div>
           ) : (
             filtered.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => onSelect(t)}
-                className="w-full text-left p-4 rounded-xl border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all group"
-              >
-                <div className="flex items-start justify-between mb-1.5">
-                  <span className="font-semibold text-sm text-gray-800 group-hover:text-emerald-700 transition-colors">{t.name}</span>
-                  <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full ml-2 flex-shrink-0">{t.category}</span>
+            <button
+              key={t.id}
+              onClick={() => t.metaStatus?.toLowerCase() === "approved" ? onSelect(t) : null}
+              disabled={t.metaStatus?.toLowerCase() !== "approved"}
+              className={`w-full text-left p-4 rounded-xl border transition-all group ${
+                t.metaStatus?.toLowerCase() === "approved"
+                  ? "border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/40 cursor-pointer"
+                  : "border-gray-100 opacity-50 cursor-not-allowed bg-gray-50"
+              }`}
+            >
+              <div className="flex items-start justify-between mb-1.5">
+                <span className={`font-semibold text-sm transition-colors ${
+                  t.metaStatus?.toLowerCase() === "approved" ? "text-gray-800 group-hover:text-emerald-700" : "text-gray-400"
+                }`}>{t.name}</span>
+                <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+                  <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">{t.category}</span>
+                  {t.metaStatus?.toLowerCase() === "approved" 
+                    ? <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">Approved</span>
+                    : <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-600 rounded-full">Pending</span>
+                  }
                 </div>
-                <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{t.body}</p>
-              </button>
+              </div>
+              <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{t.body}</p>
+            </button>
             ))
           )}
         </div>

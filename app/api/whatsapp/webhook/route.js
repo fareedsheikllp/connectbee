@@ -142,23 +142,15 @@ async function runBotFlow(nodes, edges, incomingMessage, phone, conversationId) 
     });
 
     if (matched) {
-      const connectedIds = edges
-        .filter(e => e.source === condNode.id)
-        .map(e => e.target);
+      const connectedIds = condNode.connections?.length > 0
+        ? condNode.connections
+        : edges.filter(e => e.source === condNode.id).map(e => e.target);
       for (const connId of connectedIds) {
         const connNode = nodes.find(n => n.id === connId);
         if (connNode) await handleNode(connNode, phone, conversationId);
       }
       return;
     }
-  }
-
-  // No condition matched — run fallback message nodes
-  const fallbackNodes = nodes
-    .filter(n => n.type === "message")
-    .sort((a, b) => (a.position?.y || 0) - (b.position?.y || 0));
-  if (fallbackNodes.length > 0) {
-    await handleNode(fallbackNodes[0], phone, conversationId);
   }
 }
 

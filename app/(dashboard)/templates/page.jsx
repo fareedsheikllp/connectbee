@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Plus, Search, Copy, Edit2, Trash2, FileText,
   X, Check, ChevronDown, Tag, Sparkles,
-  Clock, CheckCircle, XCircle, AlertCircle, Info
+  Clock, CheckCircle, XCircle, AlertCircle, Info, ShoppingBag, Package, Image as ImageIcon
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────
@@ -119,18 +119,25 @@ function TemplateModal({ open, onClose, onSave, initial }) {
   const [category, setCategory] = useState("General");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags]         = useState([]);
-  const [saving, setSaving]     = useState(false);
-  const [showVars, setShowVars] = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [showVars, setShowVars]     = useState(false);
+  const [mediaUrl, setMediaUrl]     = useState("");
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [catalogItems, setCatalogItems] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState("");
   const textareaRef = useRef(null);
 
   useEffect(() => {
     if (open) {
       setName(initial?.name || "");
       setBody(initial?.body || "");
-      setCategory(initial?.category || "General");
+      setCategory(initial?.category || "MARKETING");
       setTags(initial?.tags || []);
+      setMediaUrl(initial?.mediaUrl || "");
       setTagInput("");
       setShowVars(false);
+      setShowCatalog(false);
     }
   }, [open, initial]);
 
@@ -148,11 +155,26 @@ function TemplateModal({ open, onClose, onSave, initial }) {
     if (t && !tags.includes(t)) setTags(p => [...p, t]);
     setTagInput("");
   }
+  function openCatalog() {
+    setShowCatalog(true);
+    if (catalogItems.length > 0) return;
+    setCatalogLoading(true);
+    fetch("/api/catalog").then(r => r.json()).then(d => {
+      setCatalogItems(Array.isArray(d) ? d : []);
+      setCatalogLoading(false);
+    });
+  }
 
+  function insertProduct(item) {
+    const text = `🛍️ *${item.name}*\n${item.description ? item.description + "\n" : ""}💰 ${item.currency} ${Number(item.price).toFixed(2)}\n${item.inStock ? "✅ In Stock" : "❌ Out of Stock"}${item.linkUrl ? `\n🔗 ${item.linkUrl}` : ""}`;
+    setBody(prev => prev ? prev + "\n\n" + text : text);
+    if (item.imageUrl) setMediaUrl(item.imageUrl);
+    setShowCatalog(false);
+  }
   async function submit() {
     if (!name.trim() || !body.trim()) return;
     setSaving(true);
-    await onSave({ name: name.trim(), body: body.trim(), category, tags });
+    await onSave({ name: name.trim(), body: body.trim(), category, tags, mediaUrl: mediaUrl || null });
     setSaving(false);
   }
 
@@ -207,10 +229,16 @@ function TemplateModal({ open, onClose, onSave, initial }) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Message</label>
-              <button onClick={() => setShowVars(v => !v)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
-                <Sparkles size={11}/> Variables
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button onClick={() => setShowVars(v => !v)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
+                  <Sparkles size={11}/> Variables
+                </button>
+                <button onClick={openCatalog}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
+                  <ShoppingBag size={11}/> Insert Product
+                </button>
+              </div>
             </div>
             {showVars && (
               <div className="flex flex-wrap gap-1.5 mb-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
@@ -222,11 +250,75 @@ function TemplateModal({ open, onClose, onSave, initial }) {
                 ))}
               </div>
             )}
+            {showCatalog && (
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
+                  <span className="text-xs font-bold text-gray-600">Select a Product</span>
+                  <button onClick={() => setShowCatalog(false)} className="text-gray-400 hover:text-gray-600"><X size={13}/></button>
+                </div>
+                <div className="px-3 py-2 border-b border-gray-100">
+                  <input
+                    value={catalogSearch}
+                    onChange={e => setCatalogSearch(e.target.value)}
+                    placeholder="Search products..."
+                    className="w-full text-xs px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+                <div className="max-h-40 overflow-y-auto divide-y divide-gray-50">
+                  {catalogLoading ? (
+                    <div className="py-4 text-center text-xs text-gray-400">Loading...</div>
+                  ) : catalogItems.filter(i => !catalogSearch || i.name.toLowerCase().includes(catalogSearch.toLowerCase())).length === 0 ? (
+                    <div className="py-4 text-center text-xs text-gray-400">No products found</div>
+                  ) : (
+                    catalogItems
+                      .filter(i => !catalogSearch || i.name.toLowerCase().includes(catalogSearch.toLowerCase()))
+                      .map(item => (
+                        <button key={item.id} onClick={() => insertProduct(item)}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-emerald-50 transition-colors text-left">
+                          {item.imageUrl ? (
+                            <img src={item.imageUrl} alt={item.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0"/>
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <Package size={14} className="text-gray-400"/>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-gray-800 truncate">{item.name}</p>
+                            <p className="text-[11px] text-gray-400">{item.currency} {Number(item.price).toFixed(2)}</p>
+                          </div>
+                          <span className="text-[11px] text-emerald-600 font-semibold flex-shrink-0">Insert</span>
+                        </button>
+                      ))
+                  )}
+                </div>
+              </div>
+            )}
             <textarea ref={textareaRef} value={body} onChange={e => setBody(e.target.value)}
               placeholder="Hi {{name}}, thanks for reaching out!..."
               rows={5}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none transition-all leading-relaxed"
             />
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+                <span className="flex items-center gap-1.5"><ImageIcon size={11}/> Image URL <span className="normal-case font-normal">(optional)</span></span>
+              </label>
+              <input
+                value={mediaUrl}
+                onChange={e => setMediaUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+              />
+              {mediaUrl && (
+                <div className="mt-2 relative inline-block">
+                  <img src={mediaUrl} alt="Preview" className="h-20 rounded-xl object-cover border border-gray-200"
+                    onError={e => { e.target.style.display = "none"; }}/>
+                  <button onClick={() => setMediaUrl("")}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center">
+                    <X size={10}/>
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="flex justify-between mt-1">
               <span className="text-xs text-gray-400">Use {"{{name}}"}, {"{{date}}"} etc. for dynamic values</span>
               <span className={`text-xs font-medium ${body.length > 1000 ? "text-red-400" : "text-gray-400"}`}>{body.length}/1024</span>

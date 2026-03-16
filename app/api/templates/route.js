@@ -22,10 +22,10 @@ export async function POST(req) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const workspace = await db.workspace.findFirst({ where: { userId: session.user.id } });
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
-    const { name, body, category, tags } = await req.json();
+    const { name, body, category, tags, mediaUrl } = await req.json();
     if (!name || !body) return NextResponse.json({ error: "Name and body required" }, { status: 400 });
     const template = await db.template.create({
-      data: { workspaceId: workspace.id, name, body, category: category || "General", tags: tags || [] },
+      data: { workspaceId: workspace.id, name, body, category: category || "General", tags: tags || [], mediaUrl: mediaUrl || null },
     });
 
     // Submit to Twilio Content API
@@ -36,13 +36,15 @@ export async function POST(req) {
           "Content-Type": "application/json",
           "Authorization": "Basic " + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64"),
         },
-        body: JSON.stringify({
-          friendly_name: name,
-          language: "en",
-          types: {
-            "twilio/text": { body }
-          }
-        }),
+      body: JSON.stringify({
+        friendly_name: name,
+        language: "en",
+        types: mediaUrl ? {
+          "twilio/media": { body, media: [mediaUrl] }
+        } : {
+          "twilio/text": { body }
+        }
+      }),
       });
 
       const twilioData = await twilioRes.json();
@@ -57,7 +59,7 @@ export async function POST(req) {
           },
           body: JSON.stringify({
             name: name.toLowerCase().replace(/\s+/g, "_"),
-            category: "UTILITY",
+            category: category || "UTILITY",
           }),
         });
 

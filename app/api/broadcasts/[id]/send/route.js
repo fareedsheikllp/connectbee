@@ -52,7 +52,7 @@ export async function POST(req, context) {
         console.log("Sending to:", contact.phone, "Message:", broadcast.message);
         let templateSid = null;
         if (broadcast.templateId) {
-          const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "APPROVED" } });
+          const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "approved" } });
           templateSid = template?.metaTemplateId || null;
         }
         const result = await sendWhatsApp(contact.phone, broadcast.message, null, templateSid);

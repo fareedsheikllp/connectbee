@@ -51,6 +51,7 @@ export async function POST(req, context) {
         status: "DRAFT",
         workspaceId: broadcast.workspaceId,
         chatbotIds: broadcast.chatbotIds,
+        templateId: broadcast.templateId || null,
         recipients: {
           create: failedRecipients.map((r) => ({
             contactId: r.contactId,

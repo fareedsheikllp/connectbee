@@ -29,7 +29,7 @@ export async function GET(req) {
     await Promise.all(contacts.map(async (contact) => {
     let templateSid = null;
     if (broadcast.templateId) {
-      const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "APPROVED" } });
+      const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "approved" } });
       templateSid = template?.metaTemplateId || null;
     }
     const result = await sendWhatsApp(contact.phone, broadcast.message, broadcast.mediaUrl || null, templateSid);

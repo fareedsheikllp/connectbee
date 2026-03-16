@@ -296,6 +296,7 @@ export default function NewBroadcastPage() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showCatalogPicker, setShowCatalogPicker] = useState(false);
   const [showBotPicker, setShowBotPicker] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [mediaUrl, setMediaUrl] = useState("");
 
   // Step 2 — Audience
@@ -374,6 +375,7 @@ async function saveDraft() {
       scheduledAt: null,
       status: "draft",
       chatbotIds: attachedBots.map(b => b.id),
+      templateId: selectedTemplate?.id || null,
     }),
   });
   if (res.ok) router.push("/broadcasts");
@@ -394,6 +396,7 @@ async function handleSubmit() {
         scheduledAt: sendNow ? null : scheduledAt ? new Date(scheduledAt).toISOString() : null,
         status: sendNow ? "sent" : scheduledAt ? "scheduled" : "draft",
         chatbotIds: attachedBots.map(b => b.id),
+        templateId: selectedTemplate?.id || null,
       }),
     });
     if (res.ok) router.push("/broadcasts");
@@ -444,9 +447,19 @@ async function handleSubmit() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     onClick={() => setShowTemplatePicker(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
+                      selectedTemplate
+                        ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                        : "border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50"
+                    }`}
                   >
-                    <FileText size={12} /> Use Template
+                    <FileText size={12} />
+                    {selectedTemplate ? `Template: ${selectedTemplate.name}` : "Use Template"}
+                    {selectedTemplate && (
+                      <span onClick={(e) => { e.stopPropagation(); setSelectedTemplate(null); }} className="ml-1 hover:text-red-500">
+                        <X size={10} />
+                      </span>
+                    )}
                   </button>
                   <button
                     onClick={() => setShowCatalogPicker(true)}
@@ -821,7 +834,7 @@ async function handleSubmit() {
       {/* Modals */}
       {showTemplatePicker && (
         <TemplatePicker
-          onSelect={(t) => { setMessage(t.body); setShowTemplatePicker(false); }}
+          onSelect={(t) => { setMessage(t.body); setSelectedTemplate(t); setShowTemplatePicker(false); }}
           onClose={() => setShowTemplatePicker(false)}
         />
       )}

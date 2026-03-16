@@ -111,6 +111,7 @@ const result = await sendWhatsApp(contact.phone, message, broadcast.mediaUrl || 
             contactId: contact.id,
             status: hasBots ? "BOT" : "OPEN",
             chatbotId: primaryBotId,
+            chatbotIds: broadcast.chatbotIds || [],
             lastMessage: message,
           },
         });

@@ -74,6 +74,7 @@ for (const recipient of broadcast.recipients) {
           contactId: contact.id,
           status: hasBots ? "BOT" : "OPEN",
           chatbotId: primaryBotId,
+          chatbotIds: broadcast.chatbotIds || [],
           lastMessage: broadcast.message,
         },
       });

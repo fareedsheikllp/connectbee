@@ -86,6 +86,7 @@ export async function POST(req, context) {
                   contactId: contact.id,
                   status: hasBots ? "BOT" : "OPEN",
                   chatbotId: primaryBotId,
+                  chatbotIds: broadcast.chatbotIds || [],
                   lastMessage: broadcast.message,
                 },
               });

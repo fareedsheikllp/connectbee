@@ -91,15 +91,21 @@ export async function POST(req) {
       });
     }
 
-    if (conversation.chatbotId && conversation.status === "BOT") {
-      const chatbot = await db.chatbot.findFirst({
-        where: { id: conversation.chatbotId, active: true },
-      });
-      if (chatbot?.flow) {
-        const flow = chatbot.flow;
-        const nodes = flow.nodes || (Array.isArray(flow) ? flow : Object.values(flow));
-        const edges = flow.edges || [];
-        await runBotFlow(nodes, edges, body, from, conversation.id);
+    if (conversation.status === "BOT") {
+      const botIds = conversation.chatbotIds?.length > 0 
+        ? conversation.chatbotIds 
+        : conversation.chatbotId ? [conversation.chatbotId] : [];
+      
+      for (const botId of botIds) {
+        const chatbot = await db.chatbot.findFirst({
+          where: { id: botId, active: true },
+        });
+        if (chatbot?.flow) {
+          const flow = chatbot.flow;
+          const nodes = flow.nodes || (Array.isArray(flow) ? flow : Object.values(flow));
+          const edges = flow.edges || [];
+          await runBotFlow(nodes, edges, body, from, conversation.id);
+        }
       }
     }
 

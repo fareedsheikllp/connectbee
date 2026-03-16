@@ -1081,10 +1081,8 @@ export default function InboxPage() {
                         <div className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[72%] rounded-2xl px-4 py-2.5 shadow-sm ${isOut ? "bg-brand-100 rounded-br-sm" : "bg-white rounded-bl-sm border border-slate-100"}`}>
                           <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                          {isOut && (
-                            <p className="text-[9px] text-slate-300 mt-0.5 text-right">Reply STOP to unsubscribe</p>
-                          )}
                           <div className={`flex items-center gap-1 mt-1.5 ${isOut ? "justify-end" : "justify-start"}`}>
+                            {isOut && <span className="text-[10px] text-slate-400">Reply STOP to unsubscribe ·</span>}
                             <span className="text-[10px] text-slate-400">
                               {new Date(msg.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>

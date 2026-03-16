@@ -36,16 +36,16 @@ function highlightVars(text) {
 
 // ─── Template Card ────────────────────────────────────────────────
 function TemplateCard({ template, onEdit, onDelete, onCopy, onSubmit, copied }) {
-  const status = META[template.metaStatus || "NONE"];
+  const status = META[template.metaStatus?.toUpperCase() || "NONE"];
   const StatusIcon = status.icon;
 
   return (
     <div className="group bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden">
       {/* Status stripe */}
-      <div className={`h-1 w-full ${
-        template.metaStatus === "APPROVED" ? "bg-emerald-400" :
-        template.metaStatus === "PENDING"  ? "bg-amber-400"   :
-        template.metaStatus === "REJECTED" ? "bg-red-400"     :
+        <div className={`h-1 w-full ${
+        template.metaStatus?.toUpperCase() === "APPROVED" ? "bg-emerald-400" :
+        template.metaStatus?.toUpperCase() === "PENDING"  ? "bg-amber-400"   :
+        template.metaStatus?.toUpperCase() === "REJECTED" ? "bg-red-400"     :
         "bg-gray-100"
       }`} />
 
@@ -96,14 +96,14 @@ function TemplateCard({ template, onEdit, onDelete, onCopy, onSubmit, copied }) 
           <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border ${status.bg} ${status.border} ${status.color}`}>
             <StatusIcon size={10}/> {status.short}
           </span>
-          {(!template.metaStatus || template.metaStatus === "NONE") && (
+          {(!template.metaStatus || template.metaStatus?.toUpperCase() === "NONE") && (
             <button
               onClick={() => onSubmit(template.id)}
               className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors">
               Submit to Meta
             </button>
           )}
-          {template.metaStatus && template.metaStatus !== "NONE" && (
+          {template.metaStatus && template.metaStatus?.toUpperCase() !== "NONE" && (
             <span className="text-[11px] text-gray-400">{template.body.length} chars</span>
           )}
         </div>
@@ -345,7 +345,7 @@ export default function TemplatesPage() {
   const STATUS_MAP = { All: null, Approved: "APPROVED", Pending: "PENDING", "Not Submitted": "NONE", Rejected: "REJECTED" };
 
   const filtered = templates.filter(t => {
-    const ms = t.metaStatus || "NONE";
+  const ms = t.metaStatus?.toUpperCase() || "NONE";
     if (catFilter !== "All" && t.category !== catFilter) return false;
     if (statFilter !== "All" && ms !== STATUS_MAP[statFilter]) return false;
     if (search) {
@@ -356,10 +356,10 @@ export default function TemplatesPage() {
   });
 
   const counts = {
-    approved: templates.filter(t => t.metaStatus === "APPROVED").length,
-    pending:  templates.filter(t => t.metaStatus === "PENDING").length,
-    none:     templates.filter(t => !t.metaStatus || t.metaStatus === "NONE").length,
-    rejected: templates.filter(t => t.metaStatus === "REJECTED").length,
+    approved: templates.filter(t => t.metaStatus?.toUpperCase() === "APPROVED").length,
+    pending:  templates.filter(t => t.metaStatus?.toUpperCase() === "PENDING").length,
+    none:     templates.filter(t => !t.metaStatus || t.metaStatus?.toUpperCase() === "NONE").length,
+    rejected: templates.filter(t => t.metaStatus?.toUpperCase() === "REJECTED").length,
   };
 
   const catCounts = ["All", ...CATEGORIES].reduce((a, c) => {

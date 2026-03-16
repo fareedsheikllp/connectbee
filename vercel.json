@@ -1,6 +1,1 @@
-{
-  "crons": [
-    { "path": "/api/cron/broadcasts", "schedule": "* * * * *" },
-    { "path": "/api/cron/sync-templates", "schedule": "*/30 * * * *" }
-  ]
-}
+{}

@@ -13,11 +13,9 @@ export async function POST(req) {
 
     if (!from || !body) return NextResponse.json({ status: "ignored" });
 
-    // Find workspace
     const ws = await db.workspace.findFirst();
     if (!ws) return NextResponse.json({ status: "no workspace" });
 
-    // Handle STOP / START
     if (body.toUpperCase() === "STOP") {
       const contact = await db.contact.findFirst({
         where: { workspaceId: ws.id, phone: { in: [from, `+${from}`] } },
@@ -40,32 +38,28 @@ export async function POST(req) {
       return NextResponse.json({ status: "resubscribed" });
     }
 
-    // Find or create contact
     let contact = await db.contact.findFirst({
       where: { workspaceId: ws.id, phone: { in: [from, `+${from}`] } },
     });
     if (!contact) {
       contact = await db.contact.create({
-        data: {
-          workspaceId: ws.id,
-          name: from,
-          phone: from,
-          email: "",
-          notes: "",
-        },
+        data: { workspaceId: ws.id, name: from, phone: from, email: "", notes: "" },
       });
     }
 
-    // Find or create conversation
     let conversation = await db.conversation.findFirst({
       where: { workspaceId: ws.id, contactId: contact.id },
     });
     if (!conversation) {
+      const defaultBot = await db.chatbot.findFirst({
+        where: { workspaceId: ws.id, active: true, isDefault: true },
+      });
       conversation = await db.conversation.create({
         data: {
           workspaceId: ws.id,
           contactId: contact.id,
-          status: "OPEN",
+          status: defaultBot ? "BOT" : "OPEN",
+          chatbotId: defaultBot?.id || null,
           lastMessage: body,
         },
       });
@@ -80,7 +74,6 @@ export async function POST(req) {
       });
     }
 
-    // Avoid duplicate messages
     const existing = await db.message.findFirst({
       where: { conversationId: conversation.id, waMessageId },
     });
@@ -98,14 +91,15 @@ export async function POST(req) {
       });
     }
 
-    // Run chatbot if attached
-    if (conversation.chatbotId) {
+    if (conversation.chatbotId && conversation.status === "BOT") {
       const chatbot = await db.chatbot.findFirst({
         where: { id: conversation.chatbotId, active: true },
       });
       if (chatbot?.flow) {
-        const nodes = Object.values(chatbot.flow);
-        await runBotFlow(nodes, body, from, conversation.id);
+        const flow = chatbot.flow;
+        const nodes = flow.nodes || (Array.isArray(flow) ? flow : Object.values(flow));
+        const edges = flow.edges || [];
+        await runBotFlow(nodes, edges, body, from, conversation.id);
       }
     }
 
@@ -116,7 +110,7 @@ export async function POST(req) {
   }
 }
 
-async function runBotFlow(nodes, incomingMessage, phone, conversationId) {
+async function runBotFlow(nodes, edges, incomingMessage, phone, conversationId) {
   const msgLower = incomingMessage.toLowerCase().trim();
   const conditionNodes = nodes.filter(n => n.type === "condition");
 
@@ -148,13 +142,23 @@ async function runBotFlow(nodes, incomingMessage, phone, conversationId) {
     });
 
     if (matched) {
-      const connectedIds = condNode.connections || [];
+      const connectedIds = edges
+        .filter(e => e.source === condNode.id)
+        .map(e => e.target);
       for (const connId of connectedIds) {
         const connNode = nodes.find(n => n.id === connId);
         if (connNode) await handleNode(connNode, phone, conversationId);
       }
       return;
     }
+  }
+
+  // No condition matched — run fallback message nodes
+  const fallbackNodes = nodes
+    .filter(n => n.type === "message")
+    .sort((a, b) => (a.position?.y || 0) - (b.position?.y || 0));
+  if (fallbackNodes.length > 0) {
+    await handleNode(fallbackNodes[0], phone, conversationId);
   }
 }
 

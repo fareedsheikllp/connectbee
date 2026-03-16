@@ -18,7 +18,7 @@ export async function GET(req, context) {
     if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const messages = await db.message.findMany({
-      where: { conversationId: id },
+      where: { conversationId: id, NOT: { status: "FAILED" } },
       orderBy: { sentAt: "asc" },
     });
 
@@ -46,6 +46,10 @@ export async function POST(req, context) {
 
     const { content, isInternal } = await req.json();
     if (!content?.trim()) return NextResponse.json({ error: "Message content required" }, { status: 400 });
+
+    const contact = await db.contact.findFirst({
+      where: { id: conversation.contactId },
+    });
 
     if (!isInternal && contact?.phone) {
       const result = await sendWhatsApp(contact.phone, content.trim());

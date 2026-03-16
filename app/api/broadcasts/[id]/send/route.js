@@ -98,6 +98,7 @@ export async function POST(req, context) {
                   updatedAt: new Date(),
                   status: hasBots ? "BOT" : conv.status,
                   chatbotId: primaryBotId ?? conv.chatbotId,
+                  chatbotIds: broadcast.chatbotIds?.length > 0 ? broadcast.chatbotIds : conv.chatbotIds,
                 },
               });
             }

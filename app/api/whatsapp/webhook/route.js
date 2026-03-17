@@ -14,7 +14,15 @@ export async function POST(req) {
 
     if (!from || !body) return new Response("", { status: 200 });
 
+    const toNumber = params.get("To")?.replace("whatsapp:+", "").replace("whatsapp:", "");
+
     const ws = await db.workspace.findFirst({
+      where: toNumber ? {
+        OR: [
+          { twilioPhoneNumber: toNumber },
+          { twilioPhoneNumber: `+${toNumber}` },
+        ]
+      } : undefined,
       select: {
         id: true,
         twilioAccountSid: true,

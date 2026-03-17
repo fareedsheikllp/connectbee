@@ -9,7 +9,6 @@ import {
 
 // ─── Constants ────────────────────────────────────────────────────
 const CATEGORIES = ["MARKETING", "UTILITY", "AUTHENTICATION"];
-const VARIABLES  = ["{{name}}", "{{phone}}", "{{email}}", "{{company}}", "{{date}}", "{{amount}}"];
 
 const CAT_COLOR = {
   MARKETING:      "bg-rose-50 text-rose-700 border-rose-200",
@@ -230,26 +229,13 @@ function TemplateModal({ open, onClose, onSave, initial }) {
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Message</label>
               <div className="flex items-center gap-2 flex-wrap">
-                <button onClick={() => setShowVars(v => !v)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
-                  <Sparkles size={11}/> Variables
-                </button>
                 <button onClick={openCatalog}
                   className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
                   <ShoppingBag size={11}/> Insert Product
                 </button>
               </div>
             </div>
-            {showVars && (
-              <div className="flex flex-wrap gap-1.5 mb-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                {VARIABLES.map(v => (
-                  <button key={v} onClick={() => insertVar(v)}
-                    className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all">
-                    {v}
-                  </button>
-                ))}
-              </div>
-            )}
+
             {showCatalog && (
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">

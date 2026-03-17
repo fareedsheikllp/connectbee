@@ -294,7 +294,7 @@ function TemplateModal({ open, onClose, onSave, initial }) {
               </div>
             )}
             <textarea ref={textareaRef} value={body} onChange={e => setBody(e.target.value)}
-              placeholder="Hi {{name}}, thanks for reaching out!..."
+              placeholder="Type your message here..."
               rows={5}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none transition-all leading-relaxed"
             />
@@ -320,7 +320,6 @@ function TemplateModal({ open, onClose, onSave, initial }) {
               )}
             </div>
             <div className="flex justify-between mt-1">
-              <span className="text-xs text-gray-400">Use {"{{name}}"}, {"{{date}}"} etc. for dynamic values</span>
               <span className={`text-xs font-medium ${body.length > 1000 ? "text-red-400" : "text-gray-400"}`}>{body.length}/1024</span>
             </div>
           </div>

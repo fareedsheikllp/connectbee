@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendWhatsApp } from "@/lib/whatsapp";
+import { checkConversationLimit, incrementConversationsUsed } from "@/lib/planLimits";
 
 export async function GET() {
   try {
@@ -73,9 +74,20 @@ export async function POST(req) {
     });
 
     if (status?.toLowerCase() === "sent") {
-      const contacts = await db.contact.findMany({
-        where: { id: { in: contactIds || [] }, subscribed: { not: false } },
+    const allContacts = await db.contact.findMany({
+      where: { id: { in: contactIds || [] } },
+    });
+
+    // Mark unsubscribed contacts as failed immediately
+    const unsubscribed = allContacts.filter(c => c.subscribed === false);
+    for (const c of unsubscribed) {
+      await db.broadcastRecipient.updateMany({
+        where: { broadcastId: broadcast.id, contactId: c.id },
+        data: { status: "FAILED", failureReason: "Contact unsubscribed" },
       });
+    }
+
+    const contacts = allContacts.filter(c => c.subscribed !== false);
 
 for (const contact of contacts) {
   let templateSid = null;
@@ -88,10 +100,10 @@ const personalizedMessage = message
   .replace(/{{phone}}/g, contact.phone || "")
   .replace(/{{email}}/g, contact.email || "")
   .replace(/{{company}}/g, contact.company || "");
-const creds = broadcast.workspace?.twilioAccountSid ? {
-  accountSid:  broadcast.workspace.twilioAccountSid,
-  authToken:   broadcast.workspace.twilioAuthToken,
-  phoneNumber: broadcast.workspace.twilioPhoneNumber,
+const creds = workspace?.twilioAccountSid ? {
+  accountSid:  workspace.twilioAccountSid,
+  authToken:   workspace.twilioAuthToken,
+  phoneNumber: workspace.twilioPhoneNumber,
 } : null;
 const result = await sendWhatsApp(contact.phone, personalizedMessage, broadcast.mediaUrl || null, templateSid, creds);
 
@@ -115,6 +127,11 @@ const result = await sendWhatsApp(contact.phone, personalizedMessage, broadcast.
       const primaryBotId = hasBots ? chatbotIds[0] : null;
 
       if (!conv) {
+        const convCheck = await checkConversationLimit(workspace.id);
+        if (!convCheck.allowed) {
+          console.log("Conversation limit reached, skipping:", contact.phone);
+          continue;
+        }
         conv = await db.conversation.create({
           data: {
             workspaceId: workspace.id,
@@ -125,6 +142,7 @@ const result = await sendWhatsApp(contact.phone, personalizedMessage, broadcast.
             lastMessage: message,
           },
         });
+        await incrementConversationsUsed(workspace.id);
       } else {
         await db.conversation.update({
           where: { id: conv.id },

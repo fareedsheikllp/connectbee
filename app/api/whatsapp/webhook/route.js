@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendWhatsApp } from "@/lib/whatsapp";
+import { checkConversationLimit, incrementConversationsUsed } from "@/lib/planLimits";
+
 
 export async function POST(req) {
   try {
@@ -11,10 +12,22 @@ export async function POST(req) {
     const body = params.get("Body")?.trim();
     const waMessageId = params.get("MessageSid");
 
-    if (!from || !body) return NextResponse.json({ status: "ignored" });
+    if (!from || !body) return new Response("", { status: 200 });
 
-    const ws = await db.workspace.findFirst();
-    if (!ws) return NextResponse.json({ status: "no workspace" });
+    const ws = await db.workspace.findFirst({
+      select: {
+        id: true,
+        twilioAccountSid: true,
+        twilioAuthToken: true,
+        twilioPhoneNumber: true,
+      }
+    });
+    if (!ws) return new Response("", { status: 200 });
+    const wsCreds = ws.twilioAccountSid ? {
+      accountSid:  ws.twilioAccountSid,
+      authToken:   ws.twilioAuthToken,
+      phoneNumber: ws.twilioPhoneNumber,
+    } : null;
 
     if (body.toUpperCase() === "STOP") {
       const contact = await db.contact.findFirst({
@@ -22,9 +35,9 @@ export async function POST(req) {
       });
       if (contact) {
         await db.contact.update({ where: { id: contact.id }, data: { subscribed: false } });
-        await sendWhatsApp(from, "You have been unsubscribed. Send START to subscribe again.");
+        await sendWhatsApp(from, "You have been unsubscribed. Send START to subscribe again.", null, null, wsCreds);
       }
-      return NextResponse.json({ status: "unsubscribed" });
+      return new Response("", { status: 200 });
     }
 
     if (body.toUpperCase() === "START") {
@@ -33,9 +46,9 @@ export async function POST(req) {
       });
       if (contact) {
         await db.contact.update({ where: { id: contact.id }, data: { subscribed: true } });
-        await sendWhatsApp(from, "You have been resubscribed successfully!");
+        await sendWhatsApp(from, "You have been resubscribed successfully!", null, null, wsCreds);
       }
-      return NextResponse.json({ status: "resubscribed" });
+      return new Response("", { status: 200 });
     }
 
     let contact = await db.contact.findFirst({
@@ -51,6 +64,11 @@ export async function POST(req) {
       where: { workspaceId: ws.id, contactId: contact.id },
     });
     if (!conversation) {
+      const convCheck = await checkConversationLimit(ws.id);
+      if (!convCheck.allowed) {
+        console.log("Conversation limit reached for workspace:", ws.id, convCheck.reason);
+        return new Response("", { status: 200 });
+      }
       const defaultBot = await db.chatbot.findFirst({
         where: { workspaceId: ws.id, active: true, isDefault: true },
       });
@@ -63,6 +81,7 @@ export async function POST(req) {
           lastMessage: body,
         },
       });
+      await incrementConversationsUsed(ws.id);
     } else {
       await db.conversation.update({
         where: { id: conversation.id },
@@ -104,19 +123,19 @@ export async function POST(req) {
           const flow = chatbot.flow;
           const nodes = flow.nodes || (Array.isArray(flow) ? flow : Object.values(flow));
           const edges = flow.edges || [];
-          await runBotFlow(nodes, edges, body, from, conversation.id);
+          await runBotFlow(nodes, edges, body, from, conversation.id, wsCreds);
         }
       }
     }
 
-    return NextResponse.json({ status: "ok" });
+    return new Response("", { status: 200 });
   } catch (err) {
     console.error("Webhook POST error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return new Response("", { status: 200 });
   }
 }
 
-async function runBotFlow(nodes, edges, incomingMessage, phone, conversationId) {
+async function runBotFlow(nodes, edges, incomingMessage, phone, conversationId, wsCreds = null) {
   const msgLower = incomingMessage.toLowerCase().trim();
   const conditionNodes = nodes.filter(n => n.type === "condition");
 
@@ -124,9 +143,9 @@ async function runBotFlow(nodes, edges, incomingMessage, phone, conversationId) 
     const messageNodes = nodes
       .filter(n => n.type === "message")
       .sort((a, b) => a.order - b.order);
-    for (const node of messageNodes) {
-      await handleNode(node, phone, conversationId);
-    }
+      for (const node of messageNodes) {
+        await handleNode(node, phone, conversationId, wsCreds);
+      }
     return;
   }
 
@@ -153,16 +172,16 @@ async function runBotFlow(nodes, edges, incomingMessage, phone, conversationId) 
         : edges.filter(e => e.source === condNode.id).map(e => e.target);
       for (const connId of connectedIds) {
         const connNode = nodes.find(n => n.id === connId);
-        if (connNode) await handleNode(connNode, phone, conversationId);
+        if (connNode) await handleNode(connNode, phone, conversationId, wsCreds);
       }
       return;
     }
   }
 }
 
-async function handleNode(node, phone, conversationId) {
+async function handleNode(node, phone, conversationId, creds = null) {
   if (node.type === "message" && node.data?.message) {
-    await sendBotMessage(node.data.message, phone, conversationId);
+    await sendBotMessage(node.data.message, phone, conversationId, creds);
   }
   if (node.type === "delay" && node.data?.seconds) {
     await new Promise(r => setTimeout(r, node.data.seconds * 1000));
@@ -184,9 +203,8 @@ async function handleNode(node, phone, conversationId) {
     }
   }
 }
-
-async function sendBotMessage(text, phone, conversationId) {
-  await sendWhatsApp(phone, text);
+async function sendBotMessage(text, phone, conversationId, creds = null) {
+  await sendWhatsApp(phone, text, null, null, creds);
   await db.message.create({
     data: {
       conversationId,

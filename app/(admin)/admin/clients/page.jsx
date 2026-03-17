@@ -11,7 +11,7 @@ const PLAN_BADGE = {
 };
 
 function CreateModal({ onClose, onCreated, planConfig }) {
-  const [form, setForm] = useState({ name: "", email: "", password: "", plan: "starter" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", plan: "starter", twilioAccountSid: "", twilioAuthToken: "", twilioPhoneNumber: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const emailRef = useRef();
@@ -102,6 +102,22 @@ function CreateModal({ onClose, onCreated, planConfig }) {
                   <p className={`text-[9px] mt-0.5 ${form.plan === p.key ? "text-gray-500" : "text-gray-300"}`}>{planConfig[p.key]?.priceLabel || "—"}</p>
                 </button>
               ))}
+            </div>
+          </div>
+          <div className="pt-3 border-t border-gray-100">
+            <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">
+              Twilio Credentials <span className="normal-case font-normal text-gray-300">(optional)</span>
+            </label>
+            <div className="space-y-2">
+              <input type="text" placeholder="Account SID (ACxxx...)" value={form.twilioAccountSid}
+                onChange={(e) => set("twilioAccountSid", e.target.value)}
+                className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 placeholder:text-gray-300 font-mono" />
+              <input type="password" placeholder="Auth Token" value={form.twilioAuthToken}
+                onChange={(e) => set("twilioAuthToken", e.target.value)}
+                className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 placeholder:text-gray-300" />
+              <input type="text" placeholder="WhatsApp Number (e.g. +16472787987)" value={form.twilioPhoneNumber}
+                onChange={(e) => set("twilioPhoneNumber", e.target.value)}
+                className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 placeholder:text-gray-300 font-mono" />
             </div>
           </div>
           {error && <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2"><p className="text-[12px] text-red-600">{error}</p></div>}

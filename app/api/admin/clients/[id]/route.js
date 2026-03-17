@@ -42,6 +42,9 @@ export async function GET(request, { params }) {
             plan: true,
             waVerified: true,
             waPhoneNumberId: true,
+            twilioAccountSid: true,
+            twilioAuthToken: true,
+            twilioPhoneNumber: true,
             _count: {
               select: {
                 contacts: true,
@@ -73,6 +76,9 @@ export async function GET(request, { params }) {
         flowsCount: user.workspace?._count?.chatbots ?? 0,
         conversationsCount: user.workspace?._count?.conversations ?? 0,
         broadcastsCount: user.workspace?._count?.broadcasts ?? 0,
+        twilioAccountSid:  user.workspace?.twilioAccountSid  || null,
+        twilioAuthToken:   user.workspace?.twilioAuthToken   || null,
+        twilioPhoneNumber: user.workspace?.twilioPhoneNumber || null,
       },
     });
   } catch (error) {
@@ -87,7 +93,7 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
-  const { plan, status } = await request.json();
+  const { plan, status, twilioAccountSid, twilioAuthToken, twilioPhoneNumber } = await request.json();
 
   if (plan && !PLAN_MAP[plan]) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
@@ -106,7 +112,12 @@ export async function PATCH(request, { params }) {
       if (workspace) {
         await prisma.workspace.update({
           where: { userId: id },
-          data: { plan: PLAN_MAP[plan] },
+          data: {
+            ...(plan && { plan: PLAN_MAP[plan] }),
+            ...(twilioAccountSid  !== undefined && { twilioAccountSid }),
+            ...(twilioAuthToken   !== undefined && { twilioAuthToken }),
+            ...(twilioPhoneNumber !== undefined && { twilioPhoneNumber }),
+          },
         });
       }
     }

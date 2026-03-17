@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendWhatsApp } from "@/lib/whatsapp";
+import { checkConversationLimit, incrementConversationsUsed } from "@/lib/planLimits";
 
 export async function POST(req, context) {
   try {
@@ -60,7 +61,12 @@ export async function POST(req, context) {
           .replace(/{{phone}}/g, contact.phone || "")
           .replace(/{{email}}/g, contact.email || "")
           .replace(/{{company}}/g, contact.company || "");
-        const result = await sendWhatsApp(contact.phone, personalizedMessage, null, templateSid);
+          const creds = broadcast.workspace?.twilioAccountSid ? {
+            accountSid:  broadcast.workspace.twilioAccountSid,
+            authToken:   broadcast.workspace.twilioAuthToken,
+            phoneNumber: broadcast.workspace.twilioPhoneNumber,
+          } : null;
+          const result = await sendWhatsApp(contact.phone, personalizedMessage, null, templateSid, creds);
         console.log("Send result:", JSON.stringify(result));
 
         await db.broadcastRecipient.update({
@@ -84,18 +90,24 @@ export async function POST(req, context) {
               where: { workspaceId: broadcast.workspaceId, contactId: contact.id },
             });
 
-            if (!conv) {
-              conv = await db.conversation.create({
-                data: {
-                  workspaceId: broadcast.workspaceId,
-                  contactId: contact.id,
-                  status: hasBots ? "BOT" : "OPEN",
-                  chatbotId: primaryBotId,
-                  chatbotIds: broadcast.chatbotIds || [],
-                  lastMessage: broadcast.message,
-                },
-              });
-            } else {
+          if (!conv) {
+            const convCheck = await checkConversationLimit(broadcast.workspaceId);
+            if (!convCheck.allowed) {
+              console.log("Conversation limit reached, skipping:", contact.phone);
+              return;
+            }
+            conv = await db.conversation.create({
+              data: {
+                workspaceId: broadcast.workspaceId,
+                contactId: contact.id,
+                status: hasBots ? "BOT" : "OPEN",
+                chatbotId: primaryBotId,
+                chatbotIds: broadcast.chatbotIds || [],
+                lastMessage: broadcast.message,
+              },
+            });
+            await incrementConversationsUsed(broadcast.workspaceId);
+          } else {
               await db.conversation.update({
                 where: { id: conv.id },
                 data: {

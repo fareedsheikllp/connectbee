@@ -78,7 +78,7 @@ export async function POST(request) {
   }
 
   try {
-    const { name, email, password, plan } = await request.json();
+    const { name, email, password, plan, twilioAccountSid, twilioAuthToken, twilioPhoneNumber } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
@@ -106,6 +106,9 @@ export async function POST(request) {
             name: name || email.split("@")[0],
             slug: email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "-" + Date.now(),
             plan: PLAN_MAP[plan] || "STARTER",
+            twilioAccountSid:  twilioAccountSid  || null,
+            twilioAuthToken:   twilioAuthToken   || null,
+            twilioPhoneNumber: twilioPhoneNumber || null,
           },
         },
       },

@@ -297,7 +297,6 @@ useEffect(() => {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-const VARIABLES = ["{{name}}", "{{phone}}", "{{email}}", "{{company}}"];
 
 export default function NewBroadcastPage() {
   const router = useRouter();
@@ -346,7 +345,7 @@ useEffect(() => {
   }
 
   function goStep2() {
-    if (!name.trim() || !message.trim()) return;
+    if (!name.trim() || !message.trim() || !selectedTemplate) return;
     loadAudience();
     setStep(2);
   }
@@ -472,41 +471,27 @@ async function handleSubmit() {
                       </span>
                     )}
                   </button>
-                  <button
-                    onClick={() => setShowVars((v) => !v)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
-                  >
-                    <Sparkles size={12} /> Variables
-                  </button>
                 </div>
-
-                {showVars && (
-                  <div className="flex flex-wrap gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                    {VARIABLES.map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => { insertVar(v); setShowVars(false); }}
-                        className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all"
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                )}
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Message *</label>
                   <textarea
                     ref={textareaRef}
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={() => {}}
+                    readOnly={true}
                     placeholder="Type your message here..."
                     rows={7}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none transition-all leading-relaxed"
+                    className={`w-full px-4 py-3 rounded-xl border text-sm text-gray-800 placeholder-gray-400 focus:outline-none resize-none transition-all leading-relaxed ${
+                      selectedTemplate
+                        ? "border-emerald-200 bg-emerald-50/40 text-gray-500 cursor-not-allowed"
+                        : "border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    }`}
                   />
                   <div className="flex justify-between mt-1.5">
-                    <p className="text-xs text-gray-400">Use {"{{name}}"} for personalization</p>
-                    <span className={`text-xs font-medium ${message.length > 1000 ? "text-red-400" : "text-gray-400"}`}>{message.length}/1024</span>
+                    <label className={`block text-xs font-semibold mb-2 ${selectedTemplate ? "text-emerald-600" : "text-amber-500"}`}>
+                      {selectedTemplate ? " Template locked — editing disabled to avoid rejection" : " You must select an approved template to compose a message *"}
+                    </label>
                   </div>
                 </div>
               </div>
@@ -623,7 +608,7 @@ async function handleSubmit() {
                 </button>
                 <button
                   onClick={goStep2}
-                  disabled={!name.trim() || !message.trim()}
+                  disabled={!name.trim() || !selectedTemplate}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm shadow-emerald-200"
                 >
                   Continue to Audience <ArrowRight size={15} />

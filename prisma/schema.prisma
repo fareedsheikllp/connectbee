@@ -88,6 +88,9 @@ model Workspace {
   waAccessToken    String?  @db.Text
   waBusinessId     String?
   waVerified       Boolean  @default(false)
+  twilioAccountSid    String?
+  twilioAuthToken     String?
+  twilioPhoneNumber   String?
 
   // Relations
   contacts    Contact[]

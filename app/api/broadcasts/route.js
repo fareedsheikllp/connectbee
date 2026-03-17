@@ -88,7 +88,12 @@ const personalizedMessage = message
   .replace(/{{phone}}/g, contact.phone || "")
   .replace(/{{email}}/g, contact.email || "")
   .replace(/{{company}}/g, contact.company || "");
-const result = await sendWhatsApp(contact.phone, personalizedMessage, broadcast.mediaUrl || null, templateSid);
+const creds = broadcast.workspace?.twilioAccountSid ? {
+  accountSid:  broadcast.workspace.twilioAccountSid,
+  authToken:   broadcast.workspace.twilioAuthToken,
+  phoneNumber: broadcast.workspace.twilioPhoneNumber,
+} : null;
+const result = await sendWhatsApp(contact.phone, personalizedMessage, broadcast.mediaUrl || null, templateSid, creds);
 
   await db.broadcastRecipient.updateMany({
     where: { broadcastId: broadcast.id, contactId: contact.id },

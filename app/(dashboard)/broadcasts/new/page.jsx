@@ -401,7 +401,6 @@ async function handleSubmit() {
       body: JSON.stringify({
         name: name.trim(),
         message: message.trim(),
-        mediaUrl: mediaUrl || null,
         contactIds: selectedIds,
         scheduledAt: sendNow ? null : scheduledAt ? new Date(scheduledAt).toISOString() : null,
         status: sendNow ? "sent" : scheduledAt ? "scheduled" : "draft",

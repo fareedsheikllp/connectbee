@@ -69,10 +69,12 @@ function TemplateCard({ template, onEdit, onDelete, onCopy, onSubmit, copied }) 
               className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
               {copied === template.id ? <Check size={13} className="text-emerald-500"/> : <Copy size={13}/>}
             </button>
-            <button onClick={() => onEdit(template)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
-              <Edit2 size={13}/>
-            </button>
+            {(!template.metaStatus || template.metaStatus?.toUpperCase() === "NONE") && (
+              <button onClick={() => onEdit(template)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+                <Edit2 size={13}/>
+              </button>
+            )}
             <button onClick={() => onDelete(template.id)}
               className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
               <Trash2 size={13}/>

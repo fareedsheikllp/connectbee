@@ -219,13 +219,14 @@ export default function ClientDetailPage() {
       <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm overflow-hidden mt-4">
         <div className="px-6 py-4 border-b border-gray-100" style={{ background: "#fafafa" }}>
           <h2 className="text-[14px] font-semibold text-gray-800">Twilio Credentials</h2>
-          <p className="text-[12px] text-gray-400 mt-0.5">Per-client WhatsApp sender credentials. Leave blank to use platform defaults.</p>
+          <p className="text-[12px] text-gray-400 mt-0.5">Per-client WhatsApp sender credentials. All three fields required to enable sending.</p>
         </div>
         <div className="p-5 space-y-3">
           <div>
             <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Account SID</label>
             <input
               type="text"
+              autoComplete="off"
               value={client.twilioAccountSid || ""}
               onChange={(e) => setClient(p => ({ ...p, twilioAccountSid: e.target.value }))}
               placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -236,6 +237,7 @@ export default function ClientDetailPage() {
             <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Auth Token</label>
             <input
               type="password"
+              autoComplete="new-password"
               value={client.twilioAuthToken || ""}
               onChange={(e) => setClient(p => ({ ...p, twilioAuthToken: e.target.value }))}
               placeholder="••••••••••••••••••••••••••••••••"
@@ -246,6 +248,7 @@ export default function ClientDetailPage() {
             <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">WhatsApp Number</label>
             <input
               type="text"
+              autoComplete="off"
               value={client.twilioPhoneNumber || ""}
               onChange={(e) => setClient(p => ({ ...p, twilioPhoneNumber: e.target.value }))}
               placeholder="+16472787987"

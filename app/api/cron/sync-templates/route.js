@@ -8,7 +8,7 @@ export async function GET(req) {
   }
 
   const templates = await db.template.findMany({
-    where: { metaTemplateId: { not: null }, metaStatus: "PENDING" },
+    where: { metaTemplateId: { not: null }, metaStatus: { in: ["PENDING", "pending"] } },
     include: { workspace: { select: { twilioAccountSid: true, twilioAuthToken: true } } },
   });
 
@@ -24,7 +24,8 @@ export async function GET(req) {
       }
     );
     const data = await res.json();
-    const status = data.whatsapp?.status?.toLowerCase();
+    const rawStatus = data.whatsapp?.status?.toUpperCase();
+    const status = rawStatus === "ACTIVE" ? "APPROVED" : rawStatus;
     if (status && status !== template.metaStatus) {
       await db.template.update({
         where: { id: template.id },

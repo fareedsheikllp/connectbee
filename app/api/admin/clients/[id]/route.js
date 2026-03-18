@@ -107,20 +107,18 @@ export async function PATCH(request, { params }) {
     await prisma.user.update({ where: { id }, data: userUpdate });
 
     // Also update Workspace.plan enum
-    if (plan) {
-      const workspace = await prisma.workspace.findUnique({ where: { userId: id } });
-      if (workspace) {
-        await prisma.workspace.update({
-          where: { userId: id },
-          data: {
-            ...(plan && { plan: PLAN_MAP[plan] }),
-            ...(twilioAccountSid  !== undefined && { twilioAccountSid }),
-            ...(twilioAuthToken   !== undefined && { twilioAuthToken }),
-            ...(twilioPhoneNumber !== undefined && { twilioPhoneNumber }),
-          },
-        });
-      }
-    }
+const workspace = await prisma.workspace.findUnique({ where: { userId: id } });
+if (workspace) {
+  await prisma.workspace.update({
+    where: { userId: id },
+    data: {
+      ...(plan && { plan: PLAN_MAP[plan] }),
+      ...(twilioAccountSid  !== undefined && { twilioAccountSid }),
+      ...(twilioAuthToken   !== undefined && { twilioAuthToken }),
+      ...(twilioPhoneNumber !== undefined && { twilioPhoneNumber }),
+    },
+  });
+}
 
     return NextResponse.json({ success: true, plan, status });
   } catch (error) {

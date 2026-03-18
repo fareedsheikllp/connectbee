@@ -6,6 +6,7 @@ import {
   X, Check, ChevronDown, Tag, Sparkles,
   Clock, CheckCircle, XCircle, AlertCircle, Info, ShoppingBag, Package, Image as ImageIcon
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 // ─── Constants ────────────────────────────────────────────────────
 const CATEGORIES = ["MARKETING", "UTILITY", "AUTHENTICATION"];

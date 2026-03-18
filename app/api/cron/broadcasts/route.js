@@ -50,7 +50,7 @@ export async function GET(req) {
           status: result.success ? "SENT" : "FAILED",
           sentAt: result.success ? new Date() : null,
           failureReason: result.success ? null : result.error ?? "Unknown error",
-          errorCode: result.success ? null : result.code ?? null,
+          errorCode: result.success ? null : (result.code ? String(result.code) : null),
           waMessageId: result.success ? result.messageId : null,
         },
       });

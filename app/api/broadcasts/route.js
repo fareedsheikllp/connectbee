@@ -164,6 +164,7 @@ const result = await sendWhatsApp(contact.phone, personalizedMessage, broadcast.
           content: personalizedMessage,
           status: "SENT",
           sentAt: new Date(),
+          waMessageId: result.messageId || null,
         },
       });
     } catch (convErr) {

@@ -115,6 +115,7 @@ for (const recipient of broadcast.recipients) {
         content: personalizedMessage,
         status: "SENT",
         sentAt: new Date(),
+        waMessageId: result.messageId || null,
       },
     });
   } catch (err) {

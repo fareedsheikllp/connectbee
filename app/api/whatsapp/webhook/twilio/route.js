@@ -14,7 +14,22 @@ export async function POST(req) {
 
     if (!messageSid) return NextResponse.json({ status: "no sid" });
 
+    if (status === "delivered") {
+      await db.message.updateMany({
+        where: { waMessageId: messageSid },
+        data: { status: "DELIVERED" },
+      });
+      await db.broadcastRecipient.updateMany({
+        where: { waMessageId: messageSid },
+        data: { status: "SENT" },
+      });
+    }
+
     if (status === "failed" || status === "undelivered") {
+      await db.message.updateMany({
+        where: { waMessageId: messageSid },
+        data: { status: "FAILED" },
+      });
       await db.broadcastRecipient.updateMany({
         where: { waMessageId: messageSid },
         data: {

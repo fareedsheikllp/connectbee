@@ -124,16 +124,17 @@ export async function POST(req, context) {
               });
             }
 
-            await db.message.create({
-              data: {
-                conversationId: conv.id,
-                direction: "OUTBOUND",
-                type: "TEXT",
-                content: personalizedMessage,
-                status: "SENT",
-                sentAt: new Date(),
-              },
-            });
+          await db.message.create({
+            data: {
+              conversationId: conv.id,
+              direction: "OUTBOUND",
+              type: "TEXT",
+              content: personalizedMessage,
+              status: "SENT",
+              sentAt: new Date(),
+              waMessageId: result.messageId || null,
+            },
+          });
           } catch (convErr) {
             console.error("Conversation error:", convErr.message);
           }

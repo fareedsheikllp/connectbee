@@ -415,6 +415,10 @@ export default function TemplatesPage() {
   async function handleSubmit(id) {
     const res = await fetch(`/api/templates/${id}/submit`, { method: "POST" });
     const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error || "Failed to submit template");
+      return;
+    }
     if (data.metaStatus) {
       setTemplates(p => p.map(t => t.id === id ? { ...t, metaStatus: data.metaStatus, twilioSid: data.twilioSid } : t));
     }

@@ -38,6 +38,31 @@ export async function POST(req) {
           errorCode: errorCode || null,
         },
       });
+      // Delete conversation if no inbound messages
+      const msg = await db.message.findFirst({ where: { waMessageId: messageSid } });
+      if (msg) {
+        const hasInbound = await db.message.findFirst({
+          where: { conversationId: msg.conversationId, direction: "INBOUND" },
+        });
+        if (!hasInbound) {
+          await db.conversation.delete({ where: { id: msg.conversationId } });
+        }
+      }
+    }
+
+    if (status === "failed" || status === "undelivered") {
+      await db.message.updateMany({
+        where: { waMessageId: messageSid },
+        data: { status: "FAILED" },
+      });
+      await db.broadcastRecipient.updateMany({
+        where: { waMessageId: messageSid },
+        data: {
+          status: "FAILED",
+          failureReason: errorMessage || "Delivery failed",
+          errorCode: errorCode || null,
+        },
+      });
     }
 
     return NextResponse.json({ status: "ok" });

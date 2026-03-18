@@ -9,6 +9,7 @@ export async function GET(req) {
 
   const templates = await db.template.findMany({
     where: { metaTemplateId: { not: null }, metaStatus: "PENDING" },
+    include: { workspace: { select: { twilioAccountSid: true, twilioAuthToken: true } } },
   });
 
   for (const template of templates) {
@@ -17,7 +18,7 @@ export async function GET(req) {
       {
         headers: {
           Authorization: "Basic " + Buffer.from(
-            `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
+            `${template.workspace.twilioAccountSid}:${template.workspace.twilioAuthToken}`
           ).toString("base64"),
         },
       }

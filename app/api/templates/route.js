@@ -20,8 +20,16 @@ export async function POST(req) {
   try {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const workspace = await db.workspace.findFirst({ where: { userId: session.user.id } });
+    const workspace = await db.workspace.findFirst({ 
+      where: { userId: session.user.id },
+      select: { id: true, twilioAccountSid: true, twilioAuthToken: true }
+    });
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    const accountSid = workspace.twilioAccountSid;
+    const authToken  = workspace.twilioAuthToken;
+    const authHeader = accountSid && authToken 
+      ? "Basic " + Buffer.from(`${accountSid}:${authToken}`).toString("base64") 
+      : null;
     const { name, body, category, tags, mediaUrl } = await req.json();
     if (!name || !body) return NextResponse.json({ error: "Name and body required" }, { status: 400 });
     const template = await db.template.create({
@@ -29,7 +37,7 @@ export async function POST(req) {
     });
 
     // Submit to Twilio Content API
-        try {
+        if (authHeader) try {
         const namedVars = [...new Set((body.match(/{{[^}]+}}/g) || []))];
         const examples = { name: "John Smith", phone: "16471234567", email: "john@example.com", company: "Acme Corp", date: "March 16 2026", amount: "$99.99" };
 
@@ -45,7 +53,7 @@ export async function POST(req) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": "Basic " + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64"),
+            "Authorization": authHeader,
           },
           body: JSON.stringify({
             friendly_name: name,
@@ -54,11 +62,13 @@ export async function POST(req) {
               "twilio/media": {
                 body: convertedBody,
                 media: [mediaUrl],
+                footer: "Reply STOP to unsubscribe",
                 ...(exampleValues.length > 0 && { example: { body_text: [exampleValues] } })
               }
             } : {
               "twilio/text": {
                 body: convertedBody,
+                footer: "Reply STOP to unsubscribe",
                 ...(exampleValues.length > 0 && { example: { body_text: [exampleValues] } })
               }
             }
@@ -72,7 +82,7 @@ export async function POST(req) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": "Basic " + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64"),
+            "Authorization": authHeader,
           },
           body: JSON.stringify({
             name: name.toLowerCase().replace(/\s+/g, "_"),

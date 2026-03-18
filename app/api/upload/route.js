@@ -1,9 +1,9 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-console.log("BLOB TOKEN:", process.env.BLOB_READ_WRITE_TOKEN ? "exists" : "missing");
 export async function POST(req) {
   try {
+    console.log("BLOB TOKEN:", process.env.BLOB_READ_WRITE_TOKEN ? "exists" : "missing");
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

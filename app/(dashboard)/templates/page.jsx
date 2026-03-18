@@ -236,9 +236,22 @@ function TemplateModal({ open, onClose, onSave, initial }) {
                   className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
                   <ShoppingBag size={11}/> Insert Product
                 </button>
+                <button onClick={() => setShowVars(v => !v)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
+                  <Sparkles size={11}/> Insert Variable
+                </button>
               </div>
             </div>
-
+            {showVars && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {["{{name}}", "{{phone}}", "{{email}}", "{{company}}", "{{date}}", "{{amount}}"].map(v => (
+                  <button key={v} onClick={() => insertVar(v)}
+                    className="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-mono font-bold hover:bg-emerald-100 transition-colors">
+                    {v}
+                  </button>
+                ))}
+              </div>
+            )}
             {showCatalog && (
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
@@ -288,16 +301,29 @@ function TemplateModal({ open, onClose, onSave, initial }) {
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none transition-all leading-relaxed"
             />
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
-                <span className="flex items-center gap-1.5"><ImageIcon size={11}/> Image URL <span className="normal-case font-normal">(optional)</span></span>
-              </label>
-              <input
-                value={mediaUrl}
-                onChange={e => setMediaUrl(e.target.value)}
-                placeholder="https://example.com/image.jpg"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
-              />
-              {mediaUrl && (
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+                  <span className="flex items-center gap-1.5"><ImageIcon size={11}/> Image <span className="normal-case font-normal">(optional)</span></span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    value={mediaUrl}
+                    onChange={e => setMediaUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                  />
+                  <label className="flex items-center gap-1.5 px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
+                    <ImageIcon size={13}/> Upload
+                    <input type="file" accept="image/*" className="hidden" onChange={async e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const fd = new FormData();
+                      fd.append("file", file);
+                      const res = await fetch("/api/upload", { method: "POST", body: fd });
+                      const data = await res.json();
+                      if (data.url) setMediaUrl(data.url);
+                    }}/>
+                  </label>
+                </div>{mediaUrl && (
                 <div className="mt-2 relative inline-block">
                   <img src={mediaUrl} alt="Preview" className="h-20 rounded-xl object-cover border border-gray-200"
                     onError={e => { e.target.style.display = "none"; }}/>

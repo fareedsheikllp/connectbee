@@ -92,7 +92,7 @@ export async function POST(req) {
 for (const contact of contacts) {
   let templateSid = null;
 if (broadcast.templateId) {
-  const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "approved" } });
+  const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: { in: ["approved", "APPROVED"] } } });
   templateSid = template?.metaTemplateId || null;
 }
 const personalizedMessage = message

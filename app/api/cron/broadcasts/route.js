@@ -30,7 +30,7 @@ export async function GET(req) {
     await Promise.all(contacts.map(async (contact) => {
     let templateSid = null;
     if (broadcast.templateId) {
-      const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: "approved" } });
+      const template = await db.template.findFirst({ where: { id: broadcast.templateId, metaStatus: { in: ["approved", "APPROVED"] } } });
       templateSid = template?.metaTemplateId || null;
     }
     const personalizedMessage = broadcast.message

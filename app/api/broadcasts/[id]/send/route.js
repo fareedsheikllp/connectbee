@@ -80,6 +80,7 @@ export async function POST(req, context) {
             sentAt: result.success ? new Date() : null,
             failureReason: result.success ? null : (result.error ?? "Unknown error"),
             errorCode: result.success ? null : (result.code ? String(result.code) : null),
+            waMessageId: result.messageId || null,
           },
         });
 

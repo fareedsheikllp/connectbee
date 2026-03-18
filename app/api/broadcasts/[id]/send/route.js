@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { checkConversationLimit, incrementConversationsUsed } from "@/lib/planLimits";
+import { broadcastRateLimit } from "@/lib/ratelimit";
 
 export async function POST(req, context) {
   try {
@@ -10,6 +11,9 @@ export async function POST(req, context) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await context.params;
+
+    const { success } = await broadcastRateLimit.limit(session.user.id);
+    if (!success) return NextResponse.json({ error: "Too many requests, slow down." }, { status: 429 });
 
     const broadcast = await db.broadcast.findFirst({
       where: { id, workspace: { userId: session.user.id } },

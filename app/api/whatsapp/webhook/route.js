@@ -1,18 +1,20 @@
 import { db } from "@/lib/db";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { checkConversationLimit, incrementConversationsUsed } from "@/lib/planLimits";
-
+import { webhookRateLimit } from "@/lib/ratelimit";
 
 export async function POST(req) {
   try {
     const text = await req.text();
     const params = new URLSearchParams(text);
-
     const from = params.get("From")?.replace("whatsapp:+", "").replace("whatsapp:", "");
     const body = params.get("Body")?.trim();
     const waMessageId = params.get("MessageSid");
 
     if (!from || !body) return new Response("", { status: 200 });
+
+    const { success } = await webhookRateLimit.limit(from);
+    if (!success) return new Response("", { status: 200 });
 
     const toNumber = params.get("To")?.replace("whatsapp:+", "").replace("whatsapp:", "");
 

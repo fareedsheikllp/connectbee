@@ -36,7 +36,10 @@ export async function POST(req, context) {
 
     const { id } = await context.params;
 
-    const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
+    const workspace = await db.workspace.findUnique({ 
+      where: { userId: session.user.id },
+      select: { id: true, twilioAccountSid: true, twilioAuthToken: true, twilioPhoneNumber: true }
+    });
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
     const conversation = await db.conversation.findFirst({
@@ -52,7 +55,12 @@ export async function POST(req, context) {
     });
 
     if (!isInternal && contact?.phone) {
-      const result = await sendWhatsApp(contact.phone, content.trim());
+      const creds = workspace.twilioAccountSid ? {
+        accountSid:  workspace.twilioAccountSid,
+        authToken:   workspace.twilioAuthToken,
+        phoneNumber: workspace.twilioPhoneNumber,
+      } : null;
+      const result = await sendWhatsApp(contact.phone, content.trim(), null, null, creds);
       if (!result.success) {
         return NextResponse.json({ error: result.error ?? "Failed to send WhatsApp message" }, { status: 500 });
       }

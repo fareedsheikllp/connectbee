@@ -656,6 +656,10 @@ export default function InboxPage() {
   const [members, setMembers] = useState([]);
   const [channelFilter, setChannelFilter] = useState("ALL");
   const [showAssign, setShowAssign] = useState(false);
+  const [selectedConvs, setSelectedConvs] = useState(new Set());
+  const [bulkChannel, setBulkChannel] = useState("");
+  const [bulkAgent, setBulkAgent] = useState("");
+  const [bulkAssigning, setBulkAssigning] = useState(false);
 
   useEffect(() => {
     fetch("/api/inbox/canned").then(r => r.json()).then(d => setAllCanned(d.canned || [])).catch(() => {});
@@ -775,7 +779,28 @@ export default function InboxPage() {
       if (msg) toast.success(msg);
     } catch { toast.error("Something went wrong"); }
   }
-
+  async function bulkAssign() {
+    if (selectedConvs.size === 0) return;
+    setBulkAssigning(true);
+    try {
+      await Promise.all([...selectedConvs].map(id =>
+        fetch(`/api/inbox/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...(bulkChannel && { channelId: bulkChannel }),
+            ...(bulkAgent && { assignedTo: bulkAgent }),
+          }),
+        })
+      ));
+      toast.success(`Assigned ${selectedConvs.size} conversations`);
+      setSelectedConvs(new Set());
+      setBulkChannel("");
+      setBulkAgent("");
+      fetchConversations(true);
+    } catch { toast.error("Failed to assign"); }
+    finally { setBulkAssigning(false); }
+  }
   const filtered = conversations.filter(c => {
     if (search && !c.contact?.name?.toLowerCase().includes(search.toLowerCase()) && !c.contact?.phone?.includes(search)) return false;
     if (statusFilter !== "ALL" && c.status !== statusFilter) return false;
@@ -866,6 +891,44 @@ export default function InboxPage() {
             ))}
           </div>
         )}
+        {/* Bulk assign bar */}
+        {canAssign && selectedConvs.size > 0 && (
+          <div className="mx-3 mb-2 p-2.5 bg-brand-50 border border-brand-200 rounded-xl space-y-2">
+            <p className="text-[11px] font-bold text-brand-700">{selectedConvs.size} selected</p>
+            <select
+              value={bulkChannel}
+              onChange={e => setBulkChannel(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+            >
+              <option value="">No channel</option>
+              {channels.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
+            </select>
+            <select
+              value={bulkAgent}
+              onChange={e => setBulkAgent(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+            >
+              <option value="">No agent</option>
+              {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+            </select>
+            <div className="flex gap-1.5">
+              <button
+                onClick={bulkAssign}
+                disabled={bulkAssigning || (!bulkChannel && !bulkAgent)}
+                className="flex-1 h-7 bg-brand-500 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                {bulkAssigning ? <Loader2 size={11} className="animate-spin" /> : <Users size={11} />}
+                Assign All
+              </button>
+              <button
+                onClick={() => setSelectedConvs(new Set())}
+                className="h-7 px-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-500"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
         {/* Result count */}
         <div className="px-4 pb-1.5">
           <p className="text-[11px] text-slate-400">
@@ -894,18 +957,39 @@ export default function InboxPage() {
               const hasBadge = (() => { const seen = lastSeenAt[conv.id]; return seen && new Date(conv.updatedAt) > new Date(seen); })();
 
               return (
-                <button key={conv.id}
-                  onClick={() => { setSelected(conv); setLastSeenAt(p => ({ ...p, [conv.id]: new Date().toISOString() })); }}
-                  className={`w-full text-left px-4 py-3.5 border-b border-slate-50 transition-all ${
+                  <div key={conv.id} className={`relative border-b border-slate-50 transition-all ${
+                    isActive ? "bg-brand-50 border-l-[3px] border-l-brand-500" :
+                    selectedConvs.has(conv.id) ? "bg-brand-50 border-l-[3px] border-l-brand-400" :
+                    conv.priority === "URGENT" ? "bg-red-50 border-l-[3px] border-l-red-400" :
+                    conv.priority === "HIGH"   ? "bg-orange-50 border-l-[3px] border-l-orange-400" :
+                    conv.priority === "MEDIUM" ? "bg-amber-50 border-l-[3px] border-l-amber-400" :
+                    conv.priority === "LOW"    ? "bg-sky-50 border-l-[3px] border-l-sky-400" :
+                    hasBadge ? "bg-emerald-50 border-l-[3px] border-l-emerald-400" : ""
+                  }`}>
+                    {canAssign && (
+                      <input
+                        type="checkbox"
+                        checked={selectedConvs.has(conv.id)}
+                        onChange={e => {
+                          e.stopPropagation();
+                          setSelectedConvs(prev => {
+                            const next = new Set(prev);
+                            next.has(conv.id) ? next.delete(conv.id) : next.add(conv.id);
+                            return next;
+                          });
+                        }}
+                        className="absolute top-3.5 left-2 w-3.5 h-3.5 accent-brand-500 z-10"
+                      />
+                    )}
+                    <button
+                      onClick={() => { setSelected(conv); setLastSeenAt(p => ({ ...p, [conv.id]: new Date().toISOString() })); }}
+                      className={`w-full text-left px-4 py-3.5 ${canAssign ? "pl-7" : ""} hover:bg-black/5 transition-all`}
+                    >
                     isActive ? "bg-brand-50 border-l-[3px] border-l-brand-500" :
                     conv.priority === "URGENT" ? "bg-red-50 border-l-[3px] border-l-red-400 hover:bg-red-100" :
                     conv.priority === "HIGH"   ? "bg-orange-50 border-l-[3px] border-l-orange-400 hover:bg-orange-100" :
                     conv.priority === "MEDIUM" ? "bg-amber-50 border-l-[3px] border-l-amber-400 hover:bg-amber-100" :
                     conv.priority === "LOW"    ? "bg-sky-50 border-l-[3px] border-l-sky-400 hover:bg-sky-100" :
-                    hasBadge ? "bg-emerald-50 border-l-[3px] border-l-emerald-400 hover:bg-emerald-100" :
-                    "hover:bg-slate-50"
-                  }`}
-                >
                   <div className="flex items-start gap-3">
                     <div className="relative flex-shrink-0">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-bold">
@@ -969,6 +1053,7 @@ export default function InboxPage() {
                     </div>
                   </div>
                 </button>
+               </div>
               );
             })
           )}

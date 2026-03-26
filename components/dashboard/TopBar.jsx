@@ -6,6 +6,8 @@ import { useState } from "react";
 export default function TopBar({ user }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const role = user?.role ?? "agent";
+  const canBroadcast = ["owner", "admin", "supervisor"].includes(role);
 
   function handleSearch(e) {
     if (e.key === "Enter" && search.trim()) {
@@ -30,13 +32,15 @@ export default function TopBar({ user }) {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => router.push("/broadcasts/new")}
-          className="btn-primary btn-sm gap-1.5"
-        >
-          <Plus size={14} strokeWidth={2.5} />
-          <span>New Broadcast</span>
-        </button>
+        {canBroadcast && (
+          <button
+            onClick={() => router.push("/broadcasts/new")}
+            className="btn-primary btn-sm gap-1.5"
+          >
+            <Plus size={14} strokeWidth={2.5} />
+            <span>New Broadcast</span>
+          </button>
+        )}
         <button onClick={() => router.push("/inbox")} className="relative btn-ghost btn-icon">
           <Bell size={18} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full border-2 border-surface-0" />

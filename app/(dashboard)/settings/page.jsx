@@ -3,14 +3,16 @@ import { useState, useEffect } from "react";
 import {
   MessageSquare, Check, AlertCircle, Loader2, Save,
   Eye, EyeOff, ExternalLink, CheckCircle2, Circle,
-  User, Bell, Shield, Zap, ChevronRight
+  User, Bell, Shield, Zap, ChevronRight, Users, Plus,
+  Trash2, X
 } from "lucide-react";
 import toast from "react-hot-toast";
 
 const TABS = [
-  { id: "profile",  label: "Profile",  icon: User         },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "security", label: "Security", icon: Shield        },
+  { id: "profile",       label: "Profile",       icon: User         },
+  { id: "notifications", label: "Notifications", icon: Bell         },
+  { id: "security",      label: "Security",      icon: Shield       },
+  { id: "team",          label: "Team",          icon: Users        },
 ];
 
 const SETUP_STEPS = [
@@ -36,8 +38,17 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState({ name: "", email: "" });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [team, setTeam] = useState({ members: [], channels: [] });
+  const [loadingTeam, setLoadingTeam] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [showAddChannel, setShowAddChannel] = useState(false);
+  const [newMember, setNewMember] = useState({ name: "", email: "", password: "", role: "AGENT" });
+  const [newChannel, setNewChannel] = useState({ name: "", description: "", color: "#6366f1" });
+  const [savingMember, setSavingMember] = useState(false);
+  const [savingChannel, setSavingChannel] = useState(false);
 
   useEffect(() => { fetchSettings(); }, []);
+  useEffect(() => { if (tab === "team") fetchTeam(); }, [tab]);
 
   async function fetchSettings() {
     setLoading(true);
@@ -113,6 +124,104 @@ export default function SettingsPage() {
       toast.success("Profile updated!");
     } catch { toast.error("Something went wrong"); }
     finally { setSavingProfile(false); }
+  }
+  async function fetchTeam() {
+    setLoadingTeam(true);
+    try {
+      const [membersRes, channelsRes] = await Promise.all([
+        fetch("/api/members"),
+        fetch("/api/channels"),
+      ]);
+      const membersData = await membersRes.json();
+      const channelsData = await channelsRes.json();
+      setTeam({
+        members: membersData.members || [],
+        channels: channelsData.channels || [],
+      });
+    } catch { toast.error("Failed to load team"); }
+    finally { setLoadingTeam(false); }
+  }
+
+  async function createMember(e) {
+    e.preventDefault();
+    if (!newMember.name || !newMember.email || !newMember.password) {
+      return toast.error("All fields required");
+    }
+    setSavingMember(true);
+    try {
+      const res = await fetch("/api/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newMember),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Failed"); return; }
+      toast.success("Member added!");
+      setNewMember({ name: "", email: "", password: "", role: "AGENT" });
+      setShowAddMember(false);
+      fetchTeam();
+    } catch { toast.error("Something went wrong"); }
+    finally { setSavingMember(false); }
+  }
+
+  async function deleteMember(id) {
+    if (!confirm("Remove this member?")) return;
+    try {
+      await fetch(`/api/members/${id}`, { method: "DELETE" });
+      toast.success("Member removed");
+      fetchTeam();
+    } catch { toast.error("Failed"); }
+  }
+
+  async function createChannel(e) {
+    e.preventDefault();
+    if (!newChannel.name) return toast.error("Channel name required");
+    setSavingChannel(true);
+    try {
+      const res = await fetch("/api/channels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newChannel),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Failed"); return; }
+      toast.success("Channel created!");
+      setNewChannel({ name: "", description: "", color: "#6366f1" });
+      setShowAddChannel(false);
+      fetchTeam();
+    } catch { toast.error("Something went wrong"); }
+    finally { setSavingChannel(false); }
+  }
+
+  async function deleteChannel(id) {
+    if (!confirm("Delete this channel? Conversations will be unassigned.")) return;
+    try {
+      await fetch(`/api/channels/${id}`, { method: "DELETE" });
+      toast.success("Channel deleted");
+      fetchTeam();
+    } catch { toast.error("Failed"); }
+  }
+
+  async function assignMemberToChannel(channelId, memberId) {
+    try {
+      await fetch(`/api/channels/${channelId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addMemberId: memberId }),
+      });
+      fetchTeam();
+    } catch { toast.error("Failed"); }
+  }
+
+  async function removeMemberFromChannel(channelId, memberId) {
+    try {
+      await fetch(`/api/channels/${channelId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ removeMemberId: memberId }),
+      });
+      fetchTeam();
+    } catch { toast.error("Failed"); }
   }
 
   return (
@@ -365,6 +474,191 @@ export default function SettingsPage() {
             </div>
           )}
 
+        {/* Team Tab */}
+        {tab === "team" && (
+          <div className="space-y-6">
+
+            {/* Channels Section */}
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="font-bold text-ink-800">Channels</h3>
+                  <p className="text-xs text-ink-400 mt-0.5">Departments like Sales, Support, Billing</p>
+                </div>
+                <button onClick={() => setShowAddChannel(p => !p)} className="btn-primary btn-sm gap-1.5">
+                  <Plus size={14} /> New Channel
+                </button>
+              </div>
+
+              {/* Add Channel Form */}
+              {showAddChannel && (
+                <form onSubmit={createChannel} className="mb-5 p-4 bg-surface-50 rounded-xl border border-surface-200 space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-ink-700">New Channel</p>
+                    <button type="button" onClick={() => setShowAddChannel(false)}><X size={15} className="text-ink-400" /></button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="field-label">Name <span className="text-red-400">*</span></label>
+                      <input value={newChannel.name} onChange={e => setNewChannel(p => ({ ...p, name: e.target.value }))} className="field-input" placeholder="e.g. Sales" />
+                    </div>
+                    <div>
+                      <label className="field-label">Color</label>
+                      <input type="color" value={newChannel.color} onChange={e => setNewChannel(p => ({ ...p, color: e.target.value }))} className="h-10 w-full rounded-xl border border-surface-200 cursor-pointer" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="field-label">Description</label>
+                    <input value={newChannel.description} onChange={e => setNewChannel(p => ({ ...p, description: e.target.value }))} className="field-input" placeholder="Optional description" />
+                  </div>
+                  <button type="submit" disabled={savingChannel} className="btn-primary btn-sm gap-2">
+                    {savingChannel ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Create Channel
+                  </button>
+                </form>
+              )}
+
+              {loadingTeam ? (
+                <div className="flex justify-center py-6"><Loader2 size={20} className="animate-spin text-brand-500" /></div>
+              ) : team.channels.length === 0 ? (
+                <p className="text-sm text-ink-400 text-center py-6">No channels yet — create one above</p>
+              ) : (
+                <div className="space-y-3">
+                  {team.channels.map(channel => (
+                    <div key={channel.id} className="p-4 rounded-xl border border-surface-200 bg-surface-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: channel.color }} />
+                          <div>
+                            <p className="text-sm font-semibold text-ink-800">{channel.name}</p>
+                            {channel.description && <p className="text-xs text-ink-400">{channel.description}</p>}
+                          </div>
+                          <span className="text-xs text-ink-400 bg-surface-100 px-2 py-0.5 rounded-full">
+                            {channel._count?.conversations || 0} convos
+                          </span>
+                        </div>
+                        <button onClick={() => deleteChannel(channel.id)} className="text-red-400 hover:text-red-600 p-1">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      {/* Members in this channel */}
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {channel.members.map(({ member }) => (
+                          <div key={member.id} className="flex items-center gap-1 bg-white border border-surface-200 rounded-full px-2.5 py-1 text-xs">
+                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-[9px] font-bold">
+                              {member.name[0].toUpperCase()}
+                            </div>
+                            <span className="text-ink-700">{member.name}</span>
+                            <button onClick={() => removeMemberFromChannel(channel.id, member.id)} className="text-ink-300 hover:text-red-400 ml-0.5">
+                              <X size={10} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add member to channel */}
+                      <select
+                        onChange={e => { if (e.target.value) { assignMemberToChannel(channel.id, e.target.value); e.target.value = ""; }}}
+                        className="text-xs border border-surface-200 rounded-lg px-2 py-1 text-ink-500 bg-white"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>+ Add member</option>
+                        {team.members
+                          .filter(m => !channel.members.some(cm => cm.member.id === m.id))
+                          .map(m => (
+                            <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                          ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Members Section */}
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="font-bold text-ink-800">Team Members</h3>
+                  <p className="text-xs text-ink-400 mt-0.5">Agents and supervisors who can log in</p>
+                </div>
+                <button onClick={() => setShowAddMember(p => !p)} className="btn-primary btn-sm gap-1.5">
+                  <Plus size={14} /> Add Member
+                </button>
+              </div>
+
+              {/* Add Member Form */}
+              {showAddMember && (
+                <form onSubmit={createMember} className="mb-5 p-4 bg-surface-50 rounded-xl border border-surface-200 space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-ink-700">New Member</p>
+                    <button type="button" onClick={() => setShowAddMember(false)}><X size={15} className="text-ink-400" /></button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="field-label">Full Name <span className="text-red-400">*</span></label>
+                      <input value={newMember.name} onChange={e => setNewMember(p => ({ ...p, name: e.target.value }))} className="field-input" placeholder="Sara Ahmed" />
+                    </div>
+                    <div>
+                      <label className="field-label">Email <span className="text-red-400">*</span></label>
+                      <input type="email" value={newMember.email} onChange={e => setNewMember(p => ({ ...p, email: e.target.value }))} className="field-input" placeholder="sara@company.com" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="field-label">Password <span className="text-red-400">*</span></label>
+                      <input type="password" value={newMember.password} onChange={e => setNewMember(p => ({ ...p, password: e.target.value }))} className="field-input" placeholder="••••••••" />
+                    </div>
+                    <div>
+                      <label className="field-label">Role</label>
+                      <select value={newMember.role} onChange={e => setNewMember(p => ({ ...p, role: e.target.value }))} className="field-input">
+                        <option value="AGENT">Agent</option>
+                        <option value="SUPERVISOR">Supervisor</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button type="submit" disabled={savingMember} className="btn-primary btn-sm gap-2">
+                    {savingMember ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Add Member
+                  </button>
+                </form>
+              )}
+
+              {loadingTeam ? (
+                <div className="flex justify-center py-6"><Loader2 size={20} className="animate-spin text-brand-500" /></div>
+              ) : team.members.length === 0 ? (
+                <p className="text-sm text-ink-400 text-center py-6">No team members yet — add one above</p>
+              ) : (
+                <div className="space-y-2">
+                  {team.members.map(member => (
+                    <div key={member.id} className="flex items-center justify-between p-3 rounded-xl border border-surface-200 bg-surface-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-bold">
+                          {member.name[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-ink-800">{member.name}</p>
+                          <p className="text-xs text-ink-400">{member.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${member.role === "SUPERVISOR" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                          {member.role}
+                        </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${member.isActive ? "bg-brand-50 text-brand-600" : "bg-surface-100 text-ink-400"}`}>
+                          {member.isActive ? "Active" : "Inactive"}
+                        </span>
+                        <button onClick={() => deleteMember(member.id)} className="text-red-400 hover:text-red-600 p-1">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )} 
+            </div>
+
+          </div>
+        )}
         </div>
       </div>
     </div>

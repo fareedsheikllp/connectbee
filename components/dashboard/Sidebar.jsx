@@ -5,24 +5,34 @@ import { signOut } from "next-auth/react";
 import {
   LayoutDashboard, Users, Megaphone, MessageSquare,
   Bot, Package, BarChart3, Settings, Puzzle,
-  LogOut, ChevronRight, Zap, FileText, 
+  LogOut, ChevronRight, Zap, FileText,
 } from "lucide-react";
 import { cn } from "../../lib/utils.js";
 
-const NAV = [
-  { label: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard },
-  { label: "Inbox",        href: "/inbox",        icon: MessageSquare },
-  { label: "Contacts",     href: "/contacts",     icon: Users },
-  { label: "Broadcasts",   href: "/broadcasts",   icon: Megaphone },
-  { label: "templates",    href: "/templates",    icon: FileText },
-  { label: "Chatbot",      href: "/chatbot",      icon: Bot },
-  { label: "Catalog",      href: "/catalog",      icon: Package },
-  { label: "Analytics",    href: "/analytics",    icon: BarChart3 },
-  { label: "Integrations", href: "/integrations", icon: Puzzle },
+const ALL_NAV = [
+  { label: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard, roles: ["owner", "admin", "supervisor", "agent"] },
+  { label: "Inbox",        href: "/inbox",        icon: MessageSquare,   roles: ["owner", "admin", "supervisor", "agent"] },
+  { label: "Contacts",     href: "/contacts",     icon: Users,           roles: ["owner", "admin", "supervisor"] },
+  { label: "Broadcasts",   href: "/broadcasts",   icon: Megaphone,       roles: ["owner", "admin", "supervisor"] },
+  { label: "Templates",    href: "/templates",    icon: FileText,        roles: ["owner", "admin", "supervisor"] },
+  { label: "Chatbot",      href: "/chatbot",      icon: Bot,             roles: ["owner", "admin"] },
+  { label: "Catalog",      href: "/catalog",      icon: Package,         roles: ["owner", "admin"] },
+  { label: "Analytics",    href: "/analytics",    icon: BarChart3,       roles: ["owner", "admin", "supervisor"] },
+  { label: "Integrations", href: "/integrations", icon: Puzzle,          roles: ["owner", "admin"] },
 ];
 
 export default function Sidebar({ user }) {
   const pathname = usePathname();
+  const role = user?.role ?? "agent";
+
+  const NAV = ALL_NAV.filter(item => item.roles.includes(role));
+
+  const roleBadge = {
+    owner:      { label: "Owner",      color: "bg-brand-100 text-brand-700" },
+    admin:      { label: "Admin",      color: "bg-purple-100 text-purple-700" },
+    supervisor: { label: "Supervisor", color: "bg-amber-100 text-amber-700" },
+    agent:      { label: "Agent",      color: "bg-green-100 text-green-700" },
+  }[role] ?? { label: "User", color: "bg-surface-100 text-ink-500" };
 
   return (
     <aside className="w-[220px] flex-shrink-0 flex flex-col bg-surface-0 border-r border-surface-200 h-screen">
@@ -56,13 +66,17 @@ export default function Sidebar({ user }) {
 
       {/* Settings + User */}
       <div className="border-t border-surface-200 p-3 space-y-0.5">
-        <Link
-          href="/settings"
-          className={cn("nav-item", pathname.startsWith("/settings") && "nav-item-active")}
-        >
-          <Settings size={17} strokeWidth={2} className="flex-shrink-0" />
-          <span className="text-[13px]">Settings</span>
-        </Link>
+        {/* Only owner/admin sees Settings */}
+        {["owner", "admin"].includes(role) && (
+          <Link
+            href="/settings"
+            className={cn("nav-item", pathname.startsWith("/settings") && "nav-item-active")}
+          >
+            <Settings size={17} strokeWidth={2} className="flex-shrink-0" />
+            <span className="text-[13px]">Settings</span>
+          </Link>
+        )}
+
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="nav-item w-full text-left text-red-400 hover:!bg-red-50 hover:!text-red-600"
@@ -78,7 +92,9 @@ export default function Sidebar({ user }) {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold text-ink-800 truncate">{user?.name || "User"}</p>
-            <p className="text-[10px] text-ink-400 truncate">{user?.workspace?.plan || "Trial"}</p>
+            <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full", roleBadge.color)}>
+              {roleBadge.label}
+            </span>
           </div>
         </div>
       </div>

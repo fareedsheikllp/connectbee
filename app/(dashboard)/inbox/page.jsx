@@ -5,9 +5,10 @@ import {
   Bot, Circle, Loader2, Tag, Flag, X, ChevronDown,
   Clock, AlertCircle, Zap, FileText, Plus, Trash2,
   StickyNote, RefreshCw, PanelRightOpen, PanelRightClose,
-  Filter, Lock
+  Filter, Lock, Users
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useSession } from "next-auth/react";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -648,6 +649,13 @@ export default function InboxPage() {
   const bottomRef = useRef(null);
   const [lastSeenAt, setLastSeenAt] = useState({});
   const [notesCount, setNotesCount] = useState(0);
+  const { data: session } = useSession();
+  const role = session?.user?.role ?? "owner";
+  const canAssign = ["owner", "admin", "supervisor"].includes(role);
+  const [channels, setChannels] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [channelFilter, setChannelFilter] = useState("ALL");
+  const [showAssign, setShowAssign] = useState(false);
 
   useEffect(() => {
     fetch("/api/inbox/canned").then(r => r.json()).then(d => setAllCanned(d.canned || [])).catch(() => {});
@@ -700,6 +708,11 @@ export default function InboxPage() {
   }, [selected]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    if (!canAssign) return;
+    fetch("/api/channels").then(r => r.json()).then(d => setChannels(d.channels || [])).catch(() => {});
+    fetch("/api/members").then(r => r.json()).then(d => setMembers(d.members || [])).catch(() => {});
+  }, [canAssign]);
 
   async function fetchConversations(silent = false) {
     if (!silent) setLoading(true);
@@ -768,6 +781,7 @@ export default function InboxPage() {
     if (statusFilter !== "ALL" && c.status !== statusFilter) return false;
     if (priorityFilter !== "ALL" && (c.priority || "NONE") !== priorityFilter) return false;
     if (labelFilter !== "ALL" && !getLabels(c.labels).includes(labelFilter)) return false;
+    if (channelFilter !== "ALL" && c.channelId !== channelFilter) return false;
     return true;
   });
 
@@ -832,7 +846,26 @@ export default function InboxPage() {
             );
           })}
         </div>
-
+        {/* Channel filter — only show if channels exist */}
+        {channels.length > 0 && (
+          <div className="px-3 pb-2 flex items-center gap-1 overflow-x-auto">
+            <button
+              onClick={() => setChannelFilter("ALL")}
+              className={`flex-shrink-0 h-6 px-2.5 rounded-lg text-[11px] font-semibold border transition-all ${channelFilter === "ALL" ? "bg-brand-500 text-white border-brand-500" : "text-slate-500 border-slate-200 hover:bg-slate-50"}`}
+            >
+              All Channels
+            </button>
+            {channels.map(ch => (
+              <button key={ch.id}
+                onClick={() => setChannelFilter(channelFilter === ch.id ? "ALL" : ch.id)}
+                className={`flex-shrink-0 flex items-center gap-1 h-6 px-2.5 rounded-lg text-[11px] font-semibold border transition-all ${channelFilter === ch.id ? "bg-brand-500 text-white border-brand-500" : "text-slate-500 border-slate-200 hover:bg-slate-50"}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: ch.color }} />
+                {ch.name}
+              </button>
+            ))}
+          </div>
+        )}
         {/* Result count */}
         <div className="px-4 pb-1.5">
           <p className="text-[11px] text-slate-400">
@@ -888,6 +921,17 @@ export default function InboxPage() {
                             Unsub
                           </span>
                         )}
+                        </div>
+                        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                          {conv.assignedMember && (
+                            <span className="text-[10px] text-slate-400 truncate">→ {conv.assignedMember.name}</span>
+                          )}
+                          {conv.channel && (
+                            <span className="flex items-center gap-0.5 text-[10px] font-semibold flex-shrink-0" style={{ color: conv.channel.color }}>
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: conv.channel.color }} />
+                              {conv.channel.name}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                           {conv.priority && conv.priority !== "NONE" && (
@@ -984,7 +1028,48 @@ export default function InboxPage() {
                       value={selected.dueAt}
                       onChange={d => updateConv({ dueAt: d }, d ? "Due date set" : "Removed")}
                     />
-
+                    {canAssign && (
+                      <>
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowAssign(p => !p)}
+                            className={`flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border transition-all ${showAssign ? "bg-brand-500 text-white border-brand-500" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
+                          >
+                            <Users size={12} />
+                            {selected.assignedMember ? selected.assignedMember.name : "Assign"}
+                            <ChevronDown size={10} />
+                          </button>
+                          {showAssign && (
+                            <div className="absolute right-0 top-10 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-3 space-y-3 w-56">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Channel</p>
+                                <select
+                                  value={selected.channelId || ""}
+                                  onChange={e => updateConv({ channelId: e.target.value || null })}
+                                  className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+                                >
+                                  <option value="">No channel</option>
+                                  {channels.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Agent</p>
+                                <select
+                                  value={selected.assignedTo || ""}
+                                  onChange={e => { updateConv({ assignedTo: e.target.value || null }, e.target.value ? "Assigned!" : "Unassigned"); setShowAssign(false); }}
+                                  className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+                                >
+                                  <option value="">Unassigned</option>
+                                  {members
+                                    .filter(m => !selected.channelId || m.channels?.some(cm => cm.channelId === selected.channelId))
+                                    .map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+                                </select>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
                     <div className="w-px h-5 bg-slate-200 mx-0.5" />
 
                     {selected.status === "OPEN" && (

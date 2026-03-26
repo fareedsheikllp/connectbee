@@ -4,6 +4,7 @@ import { TrendingUp, Users, MessageSquare, Megaphone, ArrowUpRight, ArrowRight, 
 import Link from "next/link";
 
 async function getDashboardData(userId) {
+    console.log("DATABASE URL:", process.env.DATABASE_URL);
   const workspace = await db.workspace.findUnique({ where: { userId } });
   if (!workspace) return { contacts: 0, conversations: 0, broadcasts: 0, sentBroadcasts: 0, recentConversations: [] };
 

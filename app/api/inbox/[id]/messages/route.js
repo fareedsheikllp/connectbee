@@ -2,18 +2,27 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendWhatsApp } from "@/lib/whatsapp";
+
+async function getWorkspaceId(session) {
+  const role = session.user.role;
+  if (role === "owner" || role === "admin") {
+    const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
+    return workspace?.id ?? null;
+  }
+  return session.user.workspaceId ?? null;
+}
+
 export async function GET(req, context) {
   try {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await context.params;
-
-    const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
-    if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    const workspaceId = await getWorkspaceId(session);
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
     const conversation = await db.conversation.findFirst({
-      where: { id, workspaceId: workspace.id },
+      where: { id, workspaceId },
     });
     if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -35,15 +44,17 @@ export async function POST(req, context) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await context.params;
+    const workspaceId = await getWorkspaceId(session);
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
-    const workspace = await db.workspace.findUnique({ 
-      where: { userId: session.user.id },
-      select: { id: true, twilioAccountSid: true, twilioAuthToken: true, twilioPhoneNumber: true }
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { id: true, twilioAccountSid: true, twilioAuthToken: true, twilioPhoneNumber: true },
     });
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
     const conversation = await db.conversation.findFirst({
-      where: { id, workspaceId: workspace.id },
+      where: { id, workspaceId },
     });
     if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

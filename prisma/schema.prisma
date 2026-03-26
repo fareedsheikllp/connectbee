@@ -103,6 +103,8 @@ model Workspace {
   integrations   Integration[]
   templates  Template[]
   cannedResponses CannedResponse[]
+  members  WorkspaceMember[]
+  channels Channel[]
 }
 
 enum Plan {
@@ -201,6 +203,50 @@ model ContactGroupMember {
   createdAt DateTime     @default(now())
 }
 // ─── CONVERSATIONS / INBOX ─────────────────────────────────────────
+model Channel {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  color       String   @default("#6366f1")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members       ChannelMember[]
+  conversations Conversation[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  email       String
+  password    String
+  role        MemberRole @default(AGENT)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  channels      ChannelMember[]
+  conversations Conversation[]
+
+  @@unique([workspaceId, email])
+}
+
+model ChannelMember {
+  id        String          @id @default(cuid())
+  channelId String
+  channel   Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    WorkspaceMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime        @default(now())
+
+  @@unique([channelId, memberId])
+}
+
 
 model Conversation {
   id          String   @id @default(cuid())
@@ -223,6 +269,9 @@ model Conversation {
   priority   String   @default("NONE")
   labels     String   @default("")
   dueAt      DateTime?
+  channelId   String?
+  channel     Channel? @relation(fields: [channelId], references: [id])
+  assignedMember WorkspaceMember? @relation(fields: [assignedTo], references: [id])
    
 }
 
@@ -366,4 +415,8 @@ model Product {
   inStock     Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+enum MemberRole {
+  SUPERVISOR
+  AGENT
 }

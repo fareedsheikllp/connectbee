@@ -8,24 +8,40 @@ export async function PATCH(req, context) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await context.params;
+    const role = session.user.role;
 
-    const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
-    if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
-
-    const { status, priority, labels, dueAt } = await req.json();
+    let workspaceId = session.user.workspaceId;
+    if (role === "owner" || role === "admin") {
+      const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+      workspaceId = workspace.id;
+    }
 
     const conversation = await db.conversation.findFirst({
-      where: { id, workspaceId: workspace.id },
+      where: { id, workspaceId },
     });
     if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const { status, priority, labels, dueAt, assignedTo, channelId } = await req.json();
+
+    // Agents can't change priority or assign
+    if (role === "agent" && (priority !== undefined || assignedTo !== undefined || channelId !== undefined)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const updated = await db.conversation.update({
       where: { id },
       data: {
-        ...(status !== undefined && { status }),
-        ...(priority !== undefined && { priority }),
-        ...(labels !== undefined && { labels }),
-        ...(dueAt !== undefined && { dueAt: dueAt ? new Date(dueAt) : null }),
+        ...(status     !== undefined && { status }),
+        ...(priority   !== undefined && { priority }),
+        ...(labels     !== undefined && { labels }),
+        ...(dueAt      !== undefined && { dueAt: dueAt ? new Date(dueAt) : null }),
+        ...(assignedTo !== undefined && { assignedTo: assignedTo || null }),
+        ...(channelId  !== undefined && { channelId: channelId || null }),
+      },
+      include: {
+        assignedMember: { select: { id: true, name: true } },
+        channel: { select: { id: true, name: true, color: true } },
       },
     });
 

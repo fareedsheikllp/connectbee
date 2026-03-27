@@ -13,7 +13,13 @@ export async function GET(req) {
     since.setDate(since.getDate() - days);
 
     // ── Same pattern as broadcasts/[id]/route.js ───────────────────
-    const where = { workspace: { userId: session.user.id } };
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = workspace?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    const where = { workspaceId };
 
     // ── Core counts ────────────────────────────────────────────────
     const [

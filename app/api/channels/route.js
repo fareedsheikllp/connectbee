@@ -36,12 +36,7 @@ export async function POST(req) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!["owner", "admin"].includes(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  console.log("SESSION USER ID:", session.user.id);
-
-  const workspace = await prisma.workspace.findUnique({ where: { userId: session.user.id } });
-  console.log("WORKSPACE FOUND:", workspace?.id ?? "NOT FOUND");
-
-  const workspaceId = workspace?.id ?? null;
+  const workspaceId = await getWorkspaceId(session);
   if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
   const { name, description, color } = await req.json();

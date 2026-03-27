@@ -21,6 +21,7 @@ const ALL_NAV = [
   { label: "Integrations", href: "/integrations", icon: Puzzle,          roles: ["owner", "admin"] },
 ];
 
+
 export default function Sidebar({ user }) {
   const pathname = usePathname();
   const role = user?.role ?? "agent";
@@ -67,7 +68,7 @@ export default function Sidebar({ user }) {
       {/* Settings + User */}
       <div className="border-t border-surface-200 p-3 space-y-0.5">
         {/* Only owner/admin sees Settings */}
-        {["owner", "admin"].includes(role) && (
+        {["owner", "admin", "supervisor"].includes(role) && (
           <Link
             href="/settings"
             className={cn("nav-item", pathname.startsWith("/settings") && "nav-item-active")}
@@ -91,10 +92,10 @@ export default function Sidebar({ user }) {
             {(user?.name?.[0] || user?.email?.[0] || "U").toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-ink-800 truncate">{user?.name || "User"}</p>
-            <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full", roleBadge.color)}>
-              {roleBadge.label}
-            </span>
+          <p className="text-xs font-semibold text-ink-800 truncate">{user?.name || "User"}</p>
+          <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full", roleBadge.color)}>
+            {roleBadge.label}
+          </span>
           </div>
         </div>
       </div>

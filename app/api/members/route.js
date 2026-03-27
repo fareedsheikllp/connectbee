@@ -17,7 +17,7 @@ async function getWorkspaceId(session) {
 export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!["owner", "admin"].includes(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!["owner", "admin", "supervisor"].includes(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const workspaceId = await getWorkspaceId(session);
   if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });

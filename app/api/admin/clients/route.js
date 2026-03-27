@@ -54,7 +54,7 @@ export async function GET() {
       name: u.name || u.workspace?.name || null,
       plan: u.workspace?.plan?.toLowerCase() || u.plan || "starter",
       status: u.status || "active",
-      conversationsUsed: u.conversationsUsed ?? 0,
+      conversationsUsed: u.workspace?._count?.conversations ?? 0,
       createdAt: u.createdAt,
       workspaceId: u.workspace?.id || null,
       waVerified: u.workspace?.waVerified || false,

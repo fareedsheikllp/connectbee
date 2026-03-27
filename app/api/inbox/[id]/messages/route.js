@@ -18,13 +18,25 @@ export async function GET(req, context) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await context.params;
-    const workspaceId = await getWorkspaceId(session);
-    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
-    const conversation = await db.conversation.findFirst({
-      where: { id, workspaceId },
+    // Find the conversation first, then verify the user has access to it
+    const conversation = await db.conversation.findUnique({
+      where: { id },
     });
     if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    // Resolve the workspaceId from session
+    const role = session.user.role;
+    let workspaceId = session.user.workspaceId;
+    if (role === "owner" || role === "admin") {
+      const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = workspace?.id ?? null;
+    }
+
+    // Make sure the conversation belongs to this user's workspace
+    if (conversation.workspaceId !== workspaceId) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
     const messages = await db.message.findMany({
       where: { conversationId: id, NOT: { status: "FAILED" } },
@@ -47,15 +59,15 @@ export async function POST(req, context) {
     const workspaceId = await getWorkspaceId(session);
     if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
+    const conversation = await db.conversation.findUnique({ where: { id } });
+    if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (conversation.workspaceId !== workspaceId) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     const workspace = await db.workspace.findUnique({
-      where: { id: workspaceId },
+      where: { id: conversation.workspaceId },
       select: { id: true, twilioAccountSid: true, twilioAuthToken: true, twilioPhoneNumber: true },
     });
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
-
-    const conversation = await db.conversation.findFirst({
-      where: { id, workspaceId },
-    });
     if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const { content, isInternal } = await req.json();

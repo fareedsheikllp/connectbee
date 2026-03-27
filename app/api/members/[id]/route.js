@@ -53,14 +53,16 @@ export async function DELETE(req, context) {
   const workspaceId = await getWorkspaceId(session);
   if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
-  // Verify member belongs to this workspace before deleting
   const existing = await prisma.workspaceMember.findFirst({
     where: { id, workspaceId },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await prisma.workspaceMember.delete({ where: { id } });
+  // Soft delete — just deactivate, never delete
+  await prisma.workspaceMember.update({
+    where: { id },
+    data: { isActive: false },
+  });
 
   return NextResponse.json({ success: true });
 }
-

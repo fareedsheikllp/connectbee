@@ -7,6 +7,7 @@ import {
   Trash2, X
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useSession } from "next-auth/react";
 
 const TABS = [
   { id: "profile",       label: "Profile",       icon: User         },
@@ -46,7 +47,7 @@ export default function SettingsPage() {
   const [newChannel, setNewChannel] = useState({ name: "", description: "", color: "#6366f1" });
   const [savingMember, setSavingMember] = useState(false);
   const [savingChannel, setSavingChannel] = useState(false);
-
+  const { data: session } = useSession();
   useEffect(() => { fetchSettings(); }, []);
   useEffect(() => { if (tab === "team") fetchTeam(); }, [tab]);
 
@@ -134,9 +135,19 @@ export default function SettingsPage() {
       ]);
       const membersData = await membersRes.json();
       const channelsData = await channelsRes.json();
+
+      let channels = channelsData.channels || [];
+
+      // Supervisors only see channels they belong to
+      if (session?.user?.role === "supervisor") {
+        channels = channels.filter(ch =>
+          ch.members?.some(cm => cm.member?.id === session.user.id || cm.memberId === session.user.id)
+        );
+      }
+
       setTeam({
         members: membersData.members || [],
-        channels: channelsData.channels || [],
+        channels,
       });
     } catch { toast.error("Failed to load team"); }
     finally { setLoadingTeam(false); }
@@ -164,11 +175,21 @@ export default function SettingsPage() {
     finally { setSavingMember(false); }
   }
 
-  async function deleteMember(id) {
-    if (!confirm("Remove this member?")) return;
+  async function toggleMember(id, currentlyActive) {
     try {
-      await fetch(`/api/members/${id}`, { method: "DELETE" });
-      toast.success("Member removed");
+      if (currentlyActive) {
+        // Deactivate — soft delete
+        await fetch(`/api/members/${id}`, { method: "DELETE" });
+        toast.success("Member deactivated");
+      } else {
+        // Reactivate
+        await fetch(`/api/members/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isActive: true }),
+        });
+        toast.success("Member reactivated");
+      }
       fetchTeam();
     } catch { toast.error("Failed"); }
   }
@@ -477,7 +498,6 @@ export default function SettingsPage() {
         {/* Team Tab */}
         {tab === "team" && (
           <div className="space-y-6">
-
             {/* Channels Section */}
             <div className="card p-6">
               <div className="flex items-center justify-between mb-5">
@@ -485,9 +505,18 @@ export default function SettingsPage() {
                   <h3 className="font-bold text-ink-800">Channels</h3>
                   <p className="text-xs text-ink-400 mt-0.5">Departments like Sales, Support, Billing</p>
                 </div>
-                <button onClick={() => setShowAddChannel(p => !p)} className="btn-primary btn-sm gap-1.5">
-                  <Plus size={14} /> New Channel
-                </button>
+                {session?.user?.role !== "supervisor" && (
+                  <button
+                    onClick={() => toggleMember(member.id, member.isActive)}
+                    className={`text-xs font-semibold px-2 py-1 rounded-lg border transition-all ${
+                      member.isActive
+                        ? "text-red-500 border-red-100 hover:bg-red-50"
+                        : "text-green-600 border-green-100 hover:bg-green-50"
+                    }`}
+                  >
+                    {member.isActive ? "Deactivate" : "Activate"}
+                  </button>
+                )}
               </div>
 
               {/* Add Channel Form */}
@@ -536,9 +565,11 @@ export default function SettingsPage() {
                             {channel._count?.conversations || 0} convos
                           </span>
                         </div>
-                        <button onClick={() => deleteChannel(channel.id)} className="text-red-400 hover:text-red-600 p-1">
-                          <Trash2 size={14} />
-                        </button>
+                        {session?.user?.role !== "supervisor" && (
+                          <button onClick={() => deleteChannel(channel.id)} className="text-red-400 hover:text-red-600 p-1">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
 
                       {/* Members in this channel */}
@@ -557,18 +588,20 @@ export default function SettingsPage() {
                       </div>
 
                       {/* Add member to channel */}
-                      <select
-                        onChange={e => { if (e.target.value) { assignMemberToChannel(channel.id, e.target.value); e.target.value = ""; }}}
-                        className="text-xs border border-surface-200 rounded-lg px-2 py-1 text-ink-500 bg-white"
-                        defaultValue=""
-                      >
-                        <option value="" disabled>+ Add member</option>
-                        {team.members
-                          .filter(m => !channel.members.some(cm => cm.member.id === m.id))
-                          .map(m => (
-                            <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
-                          ))}
-                      </select>
+                      {session?.user?.role !== "supervisor" && (
+                        <select
+                          onChange={e => { if (e.target.value) { assignMemberToChannel(channel.id, e.target.value); e.target.value = ""; }}}
+                          className="text-xs border border-slate-200 rounded-lg px-2 py-1 text-ink-500 bg-white"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>+ Add member</option>
+                          {team.members
+                            .filter(m => !channel.members.some(cm => cm.member.id === m.id))
+                            .map(m => (
+                              <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                            ))}
+                        </select>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -582,9 +615,11 @@ export default function SettingsPage() {
                   <h3 className="font-bold text-ink-800">Team Members</h3>
                   <p className="text-xs text-ink-400 mt-0.5">Agents and supervisors who can log in</p>
                 </div>
-                <button onClick={() => setShowAddMember(p => !p)} className="btn-primary btn-sm gap-1.5">
-                  <Plus size={14} /> Add Member
-                </button>
+                {session?.user?.role !== "supervisor" && (
+                  <button onClick={() => setShowAddMember(p => !p)} className="btn-primary btn-sm gap-1.5">
+                    <Plus size={14} /> Add Member
+                  </button>
+                )}
               </div>
 
               {/* Add Member Form */}
@@ -647,9 +682,11 @@ export default function SettingsPage() {
                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${member.isActive ? "bg-brand-50 text-brand-600" : "bg-surface-100 text-ink-400"}`}>
                           {member.isActive ? "Active" : "Inactive"}
                         </span>
-                        <button onClick={() => deleteMember(member.id)} className="text-red-400 hover:text-red-600 p-1">
-                          <Trash2 size={14} />
-                        </button>
+                        {session?.user?.role !== "supervisor" && (
+                          <button onClick={() => deleteMember(member.id)} className="text-red-400 hover:text-red-600 p-1">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

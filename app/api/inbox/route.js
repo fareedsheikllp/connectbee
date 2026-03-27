@@ -25,15 +25,17 @@ export async function GET() {
       // Agents only see conversations assigned to them
       where.assignedTo = session.user.memberId;
     } else if (role === "supervisor") {
-      // Supervisors see all conversations in their channels
       const memberChannels = await db.channelMember.findMany({
         where: { memberId: session.user.memberId },
         select: { channelId: true },
       });
       const channelIds = memberChannels.map(c => c.channelId);
-      if (channelIds.length > 0) {
-        where.channelId = { in: channelIds };
-      }
+
+      // Supervisors see: unassigned convos + convos in their channels
+      where.OR = [
+        { assignedTo: null, channelId: null },   // unassigned inbox
+        { channelId: { in: channelIds } },        // their channel convos
+      ];
     }
 
     const conversations = await db.conversation.findMany({

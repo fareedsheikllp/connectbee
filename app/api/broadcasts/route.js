@@ -9,11 +9,15 @@ export async function GET() {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
-    if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = workspace?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
     const broadcasts = await db.broadcast.findMany({
-      where: { workspaceId: workspace.id },
+      where: { workspaceId },
       orderBy: { createdAt: "desc" },
       include: {
         _count: { select: { recipients: true } },
@@ -50,8 +54,13 @@ export async function POST(req) {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
-    if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = workspace?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    const workspace = await db.workspace.findUnique({ where: { id: workspaceId } });
 
     const { name, message, status, contactIds, scheduledAt, chatbotIds, templateId } = await req.json();
     if (!name || !message) return NextResponse.json({ error: "Name and message required" }, { status: 400 });
@@ -134,7 +143,7 @@ const result = await sendWhatsApp(contact.phone, personalizedMessage, broadcast.
         }
         conv = await db.conversation.create({
           data: {
-            workspaceId: workspace.id,
+            workspaceId,
             contactId: contact.id,
             status: hasBots ? "BOT" : "OPEN",
             chatbotId: primaryBotId,

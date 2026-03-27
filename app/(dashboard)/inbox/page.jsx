@@ -525,7 +525,7 @@ function CannedResponsesModal({ onClose, onInsert }) {
 
 // ── Notes Panel ───────────────────────────────────────────────────────────────
 
-function NotesPanel({ conversationId, onClose, onNotesLoaded }) {
+function NotesPanel({ conversationId, onClose, onNotesLoaded, userName }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
@@ -600,7 +600,8 @@ function NotesPanel({ conversationId, onClose, onNotesLoaded }) {
             <div key={note.id} className="bg-white border border-amber-200 rounded-xl p-3 shadow-sm">
               <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{note.content}</p>
               <p className="text-[10px] text-amber-400 mt-1.5">
-                {new Date(note.sentAt).toLocaleDateString([], { month: "short", day: "numeric" })} · {new Date(note.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                <span className="font-semibold text-amber-600">{userName || "You"}</span>
+                {" · "}{new Date(note.sentAt).toLocaleDateString([], { month: "short", day: "numeric" })} · {new Date(note.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </p>
             </div>
           ))
@@ -656,10 +657,13 @@ export default function InboxPage() {
   const [members, setMembers] = useState([]);
   const [channelFilter, setChannelFilter] = useState("ALL");
   const [showAssign, setShowAssign] = useState(false);
+  const [assignChannel, setAssignChannel] = useState("");
   const [selectedConvs, setSelectedConvs] = useState(new Set());
   const [bulkChannel, setBulkChannel] = useState("");
   const [bulkAgent, setBulkAgent] = useState("");
   const [bulkAssigning, setBulkAssigning] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const isResizing = useRef(false);
 
   useEffect(() => {
     fetch("/api/inbox/canned").then(r => r.json()).then(d => setAllCanned(d.canned || [])).catch(() => {});
@@ -712,6 +716,17 @@ export default function InboxPage() {
   }, [selected]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    function onMouseMove(e) {
+      if (!isResizing.current) return;
+      const newWidth = Math.min(Math.max(e.clientX, 220), 600);
+      setSidebarWidth(newWidth);
+    }
+    function onMouseUp() { isResizing.current = false; document.body.style.cursor = ""; }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => { window.removeEventListener("mousemove", onMouseMove); window.removeEventListener("mouseup", onMouseUp); };
+  }, []);
   useEffect(() => {
     if (!canAssign) return;
     fetch("/api/channels").then(r => r.json()).then(d => setChannels(d.channels || [])).catch(() => {});
@@ -767,18 +782,42 @@ export default function InboxPage() {
     finally { setSending(false); }
   }
 
-  async function updateConv(patch, msg) {
-    try {
-      const res = await fetch(`/api/inbox/${selected.id}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      if (!res.ok) { toast.error("Failed to update"); return; }
-      setSelected(s => ({ ...s, ...patch }));
-      setConversations(c => c.map(x => x.id === selected.id ? { ...x, ...patch } : x));
-      if (msg) toast.success(msg);
-    } catch { toast.error("Something went wrong"); }
-  }
+async function updateConv(patch, msg) {
+  try {
+    const res = await fetch(`/api/inbox/${selected.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) { toast.error("Failed to update"); return; }
+
+    const data = await res.json();
+    const updated = data.conversation;
+
+    // Use the actual API response to update state — no guessing
+    if (updated) {
+      setSelected(s => ({ ...s, ...updated }));
+      setConversations(c => c.map(x => x.id === selected.id ? { ...x, ...updated } : x));
+    } else {
+      // Fallback — manually patch with extra member/channel objects
+      const extra = {};
+      if ("assignedTo" in patch) {
+        extra.assignedMember = patch.assignedTo
+          ? (members.find(m => m.id === patch.assignedTo) ?? null)
+          : null;
+      }
+      if ("channelId" in patch) {
+        extra.channel = patch.channelId
+          ? (channels.find(c => c.id === patch.channelId) ?? null)
+          : null;
+      }
+      const merged = { ...patch, ...extra };
+      setSelected(s => ({ ...s, ...merged }));
+      setConversations(c => c.map(x => x.id === selected.id ? { ...x, ...merged } : x));
+    }
+
+    if (msg) toast.success(msg);
+  } catch { toast.error("Something went wrong"); }
+}
   async function bulkAssign() {
     if (selectedConvs.size === 0) return;
     setBulkAssigning(true);
@@ -788,8 +827,8 @@ export default function InboxPage() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...(bulkChannel && { channelId: bulkChannel }),
-            ...(bulkAgent && { assignedTo: bulkAgent }),
+            ...(bulkChannel === "UNASSIGN" ? { channelId: null } : bulkChannel ? { channelId: bulkChannel } : {}),
+            ...(bulkAgent === "UNASSIGN" ? { assignedTo: null } : bulkAgent ? { assignedTo: bulkAgent } : {}),
           }),
         })
       ));
@@ -826,7 +865,11 @@ export default function InboxPage() {
     <div className="flex h-[calc(100vh-128px)] -m-6 lg:-m-8 animate-fade-in">
 
       {/* ── LEFT: Sidebar ─────────────────────────────────────────────── */}
-      <div className="w-80 flex-shrink-0 flex flex-col border-r border-slate-200 bg-white">
+      <div style={{ width: sidebarWidth }} className="flex-shrink-0 flex flex-col border-r border-slate-200 bg-white relative">
+        <div
+          onMouseDown={() => { isResizing.current = true; document.body.style.cursor = "col-resize"; }}
+          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-400 transition-colors z-10"
+        />
 
         {/* Search + Filter row */}
         <div className="px-3 pt-3 pb-2 flex items-center gap-2">
@@ -900,7 +943,8 @@ export default function InboxPage() {
               onChange={e => setBulkChannel(e.target.value)}
               className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
             >
-              <option value="">No channel</option>
+              <option value=""> No change</option>
+              <option value="UNASSIGN"> Remove channel</option>
               {channels.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
             </select>
             <select
@@ -908,8 +952,11 @@ export default function InboxPage() {
               onChange={e => setBulkAgent(e.target.value)}
               className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
             >
-              <option value="">No agent</option>
-              {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+              <option value=""> Assign </option>
+              <option value="UNASSIGN"> Unassigned </option>
+              {members
+                .filter(m => !bulkChannel || m.channels?.some(cm => cm.channelId === bulkChannel))
+                .map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
             </select>
             <div className="flex gap-1.5">
               <button
@@ -938,7 +985,26 @@ export default function InboxPage() {
         </div>
 
         {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto border-t border-slate-100">
+          <div className="flex-1 overflow-y-auto border-t border-slate-100">
+            {canAssign && sorted.length > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100 bg-slate-50">
+                <input
+                  type="checkbox"
+                  checked={selectedConvs.size === sorted.length && sorted.length > 0}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setSelectedConvs(new Set(sorted.map(c => c.id)));
+                    } else {
+                      setSelectedConvs(new Set());
+                    }
+                  }}
+                  className="w-3.5 h-3.5 accent-brand-500"
+                />
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {selectedConvs.size === sorted.length && sorted.length > 0 ? "Deselect all" : "Select all"}
+                </span>
+              </div>
+            )}
           {loading ? (
             <div className="flex items-center justify-center py-12"><Loader2 size={18} className="animate-spin text-brand-500" /></div>
           ) : sorted.length === 0 ? (
@@ -985,11 +1051,6 @@ export default function InboxPage() {
                       onClick={() => { setSelected(conv); setLastSeenAt(p => ({ ...p, [conv.id]: new Date().toISOString() })); }}
                       className={`w-full text-left px-4 py-3.5 ${canAssign ? "pl-7" : ""} hover:bg-black/5 transition-all`}
                     >
-                    isActive ? "bg-brand-50 border-l-[3px] border-l-brand-500" :
-                    conv.priority === "URGENT" ? "bg-red-50 border-l-[3px] border-l-red-400 hover:bg-red-100" :
-                    conv.priority === "HIGH"   ? "bg-orange-50 border-l-[3px] border-l-orange-400 hover:bg-orange-100" :
-                    conv.priority === "MEDIUM" ? "bg-amber-50 border-l-[3px] border-l-amber-400 hover:bg-amber-100" :
-                    conv.priority === "LOW"    ? "bg-sky-50 border-l-[3px] border-l-sky-400 hover:bg-sky-100" :
                   <div className="flex items-start gap-3">
                     <div className="relative flex-shrink-0">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-bold">
@@ -998,28 +1059,20 @@ export default function InboxPage() {
                       {sc.dot && <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${sc.dot}`} />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-800 truncate">
+                          {conv.contact?.name || conv.contact?.phone}
+                        </p>
                         {conv.contact?.subscribed === false && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-500 flex-shrink-0">
                             Unsub
                           </span>
                         )}
-                        </div>
-                        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                          {conv.assignedMember && (
-                            <span className="text-[10px] text-slate-400 truncate">→ {conv.assignedMember.name}</span>
-                          )}
-                          {conv.channel && (
-                            <span className="flex items-center gap-0.5 text-[10px] font-semibold flex-shrink-0" style={{ color: conv.channel.color }}>
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: conv.channel.color }} />
-                              {conv.channel.name}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                          {conv.priority && conv.priority !== "NONE" && (
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                        {conv.priority && conv.priority !== "NONE" && (
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
                               conv.priority === "URGENT" ? "bg-red-100 text-red-600" :
                               conv.priority === "HIGH"   ? "bg-orange-100 text-orange-600" :
                               conv.priority === "MEDIUM" ? "bg-amber-100 text-amber-600" :
@@ -1031,6 +1084,19 @@ export default function InboxPage() {
                           <span className="text-[10px] text-slate-400">{timeAgo(conv.updatedAt)}</span>
                         </div>
                       </div>
+                        {(conv.assignedMember || conv.channel) && (
+                          <div className="flex items-center gap-1.5 mb-1 mt-0.5">
+                          {conv.assignedMember && (
+                            <span className="text-[10px] text-slate-400">→ {conv.assignedMember.name}</span>
+                          )}
+                          {conv.channel && (
+                            <span className="flex items-center gap-0.5 text-[10px] font-semibold" style={{ color: conv.channel.color }}>
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: conv.channel.color }} />
+                              {conv.channel.name}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <p className={`text-xs truncate mb-1.5 ${hasBadge ? "text-slate-700 font-medium" : "text-slate-400"}`}>
                         {conv.lastMessage || "No messages yet"}
                       </p>
@@ -1117,7 +1183,7 @@ export default function InboxPage() {
                       <>
                         <div className="relative">
                           <button
-                            onClick={() => setShowAssign(p => !p)}
+                            onClick={() => { setShowAssign(p => !p); setAssignChannel(""); }}
                             className={`flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border transition-all ${showAssign ? "bg-brand-500 text-white border-brand-500" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
                           >
                             <Users size={12} />
@@ -1128,11 +1194,15 @@ export default function InboxPage() {
                             <div className="absolute right-0 top-10 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-3 space-y-3 w-56">
                               <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Channel</p>
-                                <select
-                                  value={selected.channelId || ""}
-                                  onChange={e => updateConv({ channelId: e.target.value || null })}
-                                  className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
-                                >
+                                  <select
+                                    value={assignChannel || selected.channelId || ""}
+                                      onChange={e => {
+                                        const val = e.target.value;
+                                        setAssignChannel(val);
+                                        updateConv({ channelId: val === "UNASSIGN" ? null : val || null });
+                                      }}
+                                    className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+                                  >
                                   <option value="">No channel</option>
                                   {channels.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
                                 </select>
@@ -1141,12 +1211,23 @@ export default function InboxPage() {
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Agent</p>
                                 <select
                                   value={selected.assignedTo || ""}
-                                  onChange={e => { updateConv({ assignedTo: e.target.value || null }, e.target.value ? "Assigned!" : "Unassigned"); setShowAssign(false); }}
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      updateConv(
+                                        { assignedTo: val || null },
+                                        val ? "Assigned!" : "Unassigned"
+                                      );
+                                      setShowAssign(false);
+                                      setAssignChannel("");
+                                    }}
                                   className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
                                 >
                                   <option value="">Unassigned</option>
                                   {members
-                                    .filter(m => !selected.channelId || m.channels?.some(cm => cm.channelId === selected.channelId))
+                                    .filter(m => {
+                                      const ch = assignChannel || selected.channelId;
+                                      return !ch || m.channels?.some(cm => cm.channelId === ch);
+                                    })
                                     .map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
                                 </select>
                               </div>
@@ -1313,7 +1394,7 @@ export default function InboxPage() {
 
         {/* Notes panel */}
         {showNotes && selected && (
-          <NotesPanel conversationId={selected.id} onClose={() => setShowNotes(false)} onNotesLoaded={count => setNotesCount(count)} />
+          <NotesPanel conversationId={selected.id} onClose={() => setShowNotes(false)} onNotesLoaded={count => setNotesCount(count)} userName={session?.user?.name} />
         )}
       </div>
 

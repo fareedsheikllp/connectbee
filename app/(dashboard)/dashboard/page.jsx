@@ -2,19 +2,37 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { TrendingUp, Users, MessageSquare, Megaphone, ArrowUpRight, ArrowRight, Zap } from "lucide-react";
 import Link from "next/link";
-
-async function getDashboardData(userId) {
-    console.log("DATABASE URL:", process.env.DATABASE_URL);
-  const workspace = await db.workspace.findUnique({ where: { userId } });
+async function getDashboardData(userId, workspaceId, role, memberId) {
+  let workspace = await db.workspace.findUnique({ where: { userId } });
+  if (!workspace && workspaceId) {
+    workspace = await db.workspace.findUnique({ where: { id: workspaceId } });
+  }
   if (!workspace) return { contacts: 0, conversations: 0, broadcasts: 0, sentBroadcasts: 0, recentConversations: [] };
+
+  // Build conversation filter based on role
+  let convWhere = { workspaceId: workspace.id };
+
+  if (role === "agent") {
+    convWhere.assignedTo = memberId;
+  } else if (role === "supervisor") {
+    const memberChannels = await db.channelMember.findMany({
+      where: { memberId },
+      select: { channelId: true },
+    });
+    const channelIds = memberChannels.map(c => c.channelId);
+    convWhere.OR = [
+      { assignedTo: null, channelId: null },
+      { channelId: { in: channelIds } },
+    ];
+  }
 
   const [contacts, conversations, broadcasts, sentBroadcasts, recentConversations] = await Promise.all([
     db.contact.count({ where: { workspaceId: workspace.id } }),
-    db.conversation.count({ where: { workspaceId: workspace.id } }),
+    db.conversation.count({ where: convWhere }),
     db.broadcast.count({ where: { workspaceId: workspace.id } }),
     db.broadcast.count({ where: { workspaceId: workspace.id, status: "SENT" } }),
     db.conversation.findMany({
-      where: { workspaceId: workspace.id },
+      where: convWhere,
       orderBy: { updatedAt: "desc" },
       take: 5,
       include: { contact: true },
@@ -37,7 +55,12 @@ export default async function DashboardPage() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  const data = await getDashboardData(session.user.id);
+  const data = await getDashboardData(
+    session.user.id,
+    session.user.workspaceId,
+    session.user.role,
+    session.user.memberId
+  );
 
   const STATS = [
     { label: "Total Contacts",     value: data.contacts,      icon: Users,         color: "brand" },

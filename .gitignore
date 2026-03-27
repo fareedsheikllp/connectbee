@@ -5,3 +5,14 @@ node_modules/
 prisma/migrations/
 
 .vercel
+
+backup_clean.sql
+
+backup.sql
+
+data_only.sql
+
+*.sql
+Add-Content .gitignore "`n*.sql"
+Add-Content .gitignore "`n.env"
+Add-Content .gitignore "`n.env.local"

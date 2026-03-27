@@ -40,7 +40,7 @@ export async function POST(req) {
 
     // Check duplicate phone
     const existing = await db.contact.findFirst({
-      where: { workspaceId: workspace.id, phone },
+      where: { workspaceId, phone },
     });
     if (existing) return NextResponse.json({ error: "Phone number already exists" }, { status: 409 });
 

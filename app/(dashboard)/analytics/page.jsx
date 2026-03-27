@@ -7,7 +7,109 @@ import {
   CheckCircle, XCircle, Clock, AlertCircle, FileText,
   ChevronRight, Send, Inbox
 } from "lucide-react";
+// ─── 3D Stat Card ─────────────────────────────────────────────────
+function Card3D({ children, className = "" }) {
+  return (
+    <div className={`relative bg-white rounded-2xl border border-gray-100 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.08),0_1px_4px_-1px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12),0_2px_8px_-2px_rgba(0,0,0,0.06)] transition-shadow duration-300 ${className}`}>
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/80 to-transparent pointer-events-none" />
+      {children}
+    </div>
+  );
+}
 
+// ─── Agent card ───────────────────────────────────────────────────
+function AgentCard({ agent }) {
+  const resolveRate = agent.total > 0 ? Math.round((agent.resolved / agent.total) * 100) : 0;
+  return (
+    <Card3D className="p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+          {agent.name[0].toUpperCase()}
+        </div>
+        <div>
+          <p className="text-sm font-bold text-gray-800">{agent.name}</p>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+            agent.role === "SUPERVISOR" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"
+          }`}>{agent.role}</span>
+        </div>
+        <div className="ml-auto text-right">
+          <p className="text-2xl font-black text-gray-900">{agent.total}</p>
+          <p className="text-[10px] text-gray-400">total</p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {[
+          { label: "Open", value: agent.open, color: "#38bdf8" },
+          { label: "Resolved", value: agent.resolved, color: "#22c55e" },
+        ].map(s => (
+          <div key={s.label}>
+            <div className="flex justify-between text-[11px] mb-1">
+              <span className="text-gray-500">{s.label}</span>
+              <span className="font-bold text-gray-700">{s.value}</span>
+            </div>
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${agent.total ? (s.value / agent.total) * 100 : 0}%`, backgroundColor: s.color }} />
+            </div>
+          </div>
+        ))}
+        <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
+          <span className="text-[11px] text-gray-400">Resolve rate</span>
+          <span className={`text-sm font-black ${resolveRate >= 70 ? "text-emerald-600" : resolveRate >= 40 ? "text-amber-600" : "text-red-500"}`}>
+            {resolveRate}%
+          </span>
+        </div>
+      </div>
+    </Card3D>
+  );
+}
+
+// ─── Channel card ─────────────────────────────────────────────────
+function ChannelCard({ channel }) {
+  const resolveRate = channel.total > 0 ? Math.round((channel.resolved / channel.total) * 100) : 0;
+  return (
+    <Card3D className="p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+          style={{ backgroundColor: channel.color + "22", border: `2px solid ${channel.color}44` }}>
+          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: channel.color }} />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-gray-800">{channel.name}</p>
+          <p className="text-[11px] text-gray-400">Channel</p>
+        </div>
+        <div className="ml-auto text-right">
+          <p className="text-2xl font-black text-gray-900">{channel.total}</p>
+          <p className="text-[10px] text-gray-400">convos</p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {[
+          { label: "Open",     value: channel.open,     color: "#38bdf8" },
+          { label: "Resolved", value: channel.resolved, color: "#22c55e" },
+          { label: "Bot",      value: channel.bot,      color: "#8b5cf6" },
+        ].map(s => (
+          <div key={s.label}>
+            <div className="flex justify-between text-[11px] mb-1">
+              <span className="text-gray-500">{s.label}</span>
+              <span className="font-bold text-gray-700">{s.value}</span>
+            </div>
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${channel.total ? (s.value / channel.total) * 100 : 0}%`, backgroundColor: s.color }} />
+            </div>
+          </div>
+        ))}
+        <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
+          <span className="text-[11px] text-gray-400">Resolve rate</span>
+          <span className={`text-sm font-black ${resolveRate >= 70 ? "text-emerald-600" : resolveRate >= 40 ? "text-amber-600" : "text-red-500"}`}>
+            {resolveRate}%
+          </span>
+        </div>
+      </div>
+    </Card3D>
+  );
+}
 // ─── Color palette ────────────────────────────────────────────────
 const C = {
   emerald:  "#22c55e",
@@ -372,10 +474,11 @@ export default function AnalyticsPage() {
   const TB = data?.tables       || {};
 
   const navItems = [
-    { key: "overview",   label: "Overview",    icon: BarChart2   },
-    { key: "broadcasts", label: "Broadcasts",  icon: Megaphone   },
+    { key: "overview",   label: "Overview",    icon: BarChart2     },
+    { key: "broadcasts", label: "Broadcasts",  icon: Megaphone     },
     { key: "messages",   label: "Messages",    icon: MessageSquare },
-    { key: "templates",  label: "Templates",   icon: FileText    },
+    { key: "templates",  label: "Templates",   icon: FileText      },
+    { key: "team",       label: "Team",        icon: Users         },
   ];
 
   return (
@@ -467,30 +570,103 @@ export default function AnalyticsPage() {
                   </div>
 
                   {/* Conversation status donut */}
-                  <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                  <Card3D className="p-6">
                     <SectionHeader title="Conversations" subtitle="By status" icon={Activity}/>
                     <Donut
                       segments={(BR.conversationStatus || []).map(s => ({ ...s, label: s.status }))}
                       size={100} stroke={14} centerLabel="convos"
                     />
-                  </div>
+                  </Card3D>
                 </div>
 
                 {/* Charts row 2 */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {/* Message activity bar */}
-                  <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                  <Card3D className="p-6">
                     <SectionHeader title="Message Activity" subtitle={`Messages per day · last ${range} days`} icon={MessageSquare}/>
                     <VBarChart data={CH.messageActivity} color={C.violet}/>
-                  </div>
+                  </Card3D>
 
                   {/* Broadcast activity bar */}
-                  <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                  <Card3D className="p-6">
                     <SectionHeader title="Broadcast Activity" subtitle={`Broadcasts sent per day · last ${range} days`} icon={Megaphone}/>
                     <VBarChart data={CH.broadcastActivity} color={C.emerald}/>
-                  </div>
+                  </Card3D>
                 </div>
+{/* Channel + Agent summary */}
+                {(BR.channelBreakdown || []).length > 0 && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
+                    {/* Channel summary */}
+                    <Card3D className="p-6">
+                      <SectionHeader title="Channels" subtitle="Conversation load per department" icon={Users} />
+                      <div className="space-y-3">
+                        {(BR.channelBreakdown || []).map(ch => (
+                          <div key={ch.id} className="flex items-center gap-3">
+                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ch.color }} />
+                            <span className="text-xs font-semibold text-gray-700 w-24 truncate">{ch.name}</span>
+                            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-700"
+                                style={{
+                                  width: `${Math.max(...(BR.channelBreakdown || []).map(c => c.total), 1) > 0
+                                    ? (ch.total / Math.max(...(BR.channelBreakdown || []).map(c => c.total), 1)) * 100
+                                    : 0}%`,
+                                  backgroundColor: ch.color
+                                }} />
+                            </div>
+                            <div className="text-right flex-shrink-0 w-20">
+                              <span className="text-xs font-bold text-gray-700">{ch.total} total</span>
+                              <div className="flex gap-2 justify-end mt-0.5">
+                                <span className="text-[10px] text-sky-500">{ch.open} open</span>
+                                <span className="text-[10px] text-emerald-500">{ch.resolved} done</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card3D>
+
+                    {/* Agent summary */}
+                    <Card3D className="p-6">
+                      <SectionHeader title="Agent Load" subtitle="Open conversations per agent" icon={Users} />
+                      <div className="space-y-3">
+                        {[...(BR.agentBreakdown || [])]
+                          .sort((a, b) => b.open - a.open)
+                          .map((agent, i) => {
+                            const resolveRate = agent.total > 0 ? Math.round((agent.resolved / agent.total) * 100) : 0;
+                            const maxOpen = Math.max(...(BR.agentBreakdown || []).map(a => a.open), 1);
+                            return (
+                              <div key={agent.id} className="flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                                  {agent.name[0].toUpperCase()}
+                                </div>
+                                <span className="text-xs font-semibold text-gray-700 w-20 truncate">{agent.name}</span>
+                                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full transition-all duration-700"
+                                    style={{
+                                      width: `${maxOpen > 0 ? (agent.open / maxOpen) * 100 : 0}%`,
+                                      backgroundColor: agent.open > 5 ? "#ef4444" : agent.open > 2 ? "#f59e0b" : "#22c55e"
+                                    }} />
+                                </div>
+                                <div className="text-right flex-shrink-0 w-24">
+                                  <span className="text-xs font-bold text-gray-700">{agent.open} open</span>
+                                  <div className="flex gap-2 justify-end mt-0.5">
+                                    <span className={`text-[10px] font-semibold ${resolveRate >= 70 ? "text-emerald-500" : resolveRate >= 40 ? "text-amber-500" : "text-red-500"}`}>
+                                      {resolveRate}% resolved
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        {!(BR.agentBreakdown || []).length && (
+                          <p className="text-xs text-gray-300 text-center py-4">No agents assigned yet</p>
+                        )}
+                      </div>
+                    </Card3D>
+
+                  </div>
+                )}
               </div>
             )}
 
@@ -523,22 +699,22 @@ export default function AnalyticsPage() {
 
                 {/* Failure reasons */}
                 {(BR.failureReasons || []).length > 0 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                  <Card3D className="p-6">
                     <SectionHeader title="Failure Reasons" subtitle="Why messages didn't deliver" icon={AlertCircle}/>
                     <HBarChart
                       data={(BR.failureReasons || []).map(f => ({ label: f.reason, value: f.count, color: C.red }))}
                       color={C.red}
                     />
-                  </div>
+                  </Card3D>
                 )}
 
                 {/* All broadcasts table */}
-                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                <Card3D className="overflow-hidden">
                   <div className="px-6 py-4 border-b border-gray-50">
                     <SectionHeader title="All Broadcasts" subtitle="Complete list with delivery breakdown" icon={BarChart2}/>
                   </div>
                   <BroadcastTable rows={TB.recentBroadcasts || []} showRetarget />
-                </div>
+                </Card3D>
 
                 {/* Retarget breakdown */}
                 {(TB.retargetedBroadcasts || []).length > 0 && (
@@ -604,15 +780,15 @@ export default function AnalyticsPage() {
 
                 {/* Conversation breakdown */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                  <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                  <Card3D className="p-6">
                     <SectionHeader title="Conversation Status" subtitle="Open · Bot-handled · Closed" icon={Activity}/>
                     <Donut
                       segments={(BR.conversationStatus || []).map(s => ({ ...s, label: s.status }))}
                       size={100} stroke={14} centerLabel="convos"
                     />
-                  </div>
+                  </Card3D>
 
-                  <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                  <Card3D className="p-6">
                     <SectionHeader title="Bot vs Human" subtitle="Bot-handled vs open conversations" icon={Bot}/>
                     <Donut
                       segments={[
@@ -621,12 +797,12 @@ export default function AnalyticsPage() {
                       ].filter(s => s.count > 0)}
                       size={100} stroke={14} centerLabel="convos"
                     />
-                  </div>
+                  </Card3D>
                 </div>
 
                 {/* Top failed contacts */}
                 {(TB.topFailedContacts || []).length > 0 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                  <Card3D className="overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-50">
                       <SectionHeader title="Contacts with Most Failures" subtitle="Clean these up to improve delivery" icon={XCircle}/>
                     </div>
@@ -641,12 +817,117 @@ export default function AnalyticsPage() {
                         valueLabel=" failures"
                       />
                     </div>
-                  </div>
+                  </Card3D>
                 )}
 
               </div>
             )}
+{/* ══ TEAM ══════════════════════════════════════════════ */}
+            {section === "team" && (
+              <div className="space-y-6">
 
+                {/* Channel overview */}
+                {(BR.channelBreakdown || []).length > 0 ? (
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+                        <Users size={14} className="text-emerald-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-bold text-gray-800">Channel Performance</h2>
+                        <p className="text-xs text-gray-400">Conversation breakdown per department</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {(BR.channelBreakdown || []).map(ch => (
+                        <ChannelCard key={ch.id} channel={ch} />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <Card3D className="p-10 text-center">
+                    <Users size={28} className="text-gray-200 mx-auto mb-2" />
+                    <p className="text-sm text-gray-400 font-medium">No channels yet</p>
+                    <p className="text-xs text-gray-300 mt-1">Create channels in Settings → Team</p>
+                  </Card3D>
+                )}
+
+                {/* Agent overview */}
+                {(BR.agentBreakdown || []).length > 0 ? (
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center">
+                        <Users size={14} className="text-violet-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-bold text-gray-800">Agent Performance</h2>
+                        <p className="text-xs text-gray-400">Conversations handled per team member</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {(BR.agentBreakdown || [])
+                        .sort((a, b) => b.total - a.total)
+                        .map(agent => (
+                          <AgentCard key={agent.id} agent={agent} />
+                        ))}
+                    </div>
+                  </div>
+                ) : (
+                  <Card3D className="p-10 text-center">
+                    <Users size={28} className="text-gray-200 mx-auto mb-2" />
+                    <p className="text-sm text-gray-400 font-medium">No team members yet</p>
+                    <p className="text-xs text-gray-300 mt-1">Add agents in Settings → Team</p>
+                  </Card3D>
+                )}
+
+                {/* Leaderboard */}
+                {(BR.agentBreakdown || []).length > 0 && (
+                  <Card3D className="overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-50 bg-gradient-to-r from-gray-50 to-white">
+                      <h2 className="text-sm font-bold text-gray-800">Agent Leaderboard</h2>
+                      <p className="text-xs text-gray-400 mt-0.5">Ranked by conversations resolved</p>
+                    </div>
+                    <div className="divide-y divide-gray-50">
+                      {[...(BR.agentBreakdown || [])]
+                        .sort((a, b) => b.resolved - a.resolved)
+                        .map((agent, i) => {
+                          const resolveRate = agent.total > 0 ? Math.round((agent.resolved / agent.total) * 100) : 0;
+                          const medals = ["🥇", "🥈", "🥉"];
+                          return (
+                            <div key={agent.id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/60 transition-colors">
+                              <span className="text-xl w-8 text-center flex-shrink-0">
+                                {medals[i] || <span className="text-sm font-bold text-gray-400">#{i + 1}</span>}
+                              </span>
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-sm shadow flex-shrink-0">
+                                {agent.name[0].toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-800">{agent.name}</p>
+                                <p className="text-xs text-gray-400">{agent.total} total · {agent.open} open</p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-lg font-black text-emerald-600">{agent.resolved}</p>
+                                <p className="text-[10px] text-gray-400">resolved</p>
+                              </div>
+                              <div className="w-20 flex-shrink-0">
+                                <div className="flex justify-between text-[10px] mb-1">
+                                  <span className="text-gray-400">Rate</span>
+                                  <span className={`font-bold ${resolveRate >= 70 ? "text-emerald-600" : resolveRate >= 40 ? "text-amber-600" : "text-red-500"}`}>{resolveRate}%</span>
+                                </div>
+                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${resolveRate}%`, backgroundColor: resolveRate >= 70 ? "#22c55e" : resolveRate >= 40 ? "#f59e0b" : "#ef4444" }} />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </Card3D>
+                )}
+
+              </div>
+            )}
             {/* ══ TEMPLATES ══════════════════════════════════════════ */}
             {section === "templates" && (
               <div className="space-y-6">
@@ -661,16 +942,16 @@ export default function AnalyticsPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {/* Meta approval status donut */}
-                  <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                  <Card3D className="p-6">
                     <SectionHeader title="Meta Approval Status" subtitle="Breakdown of template submission status" icon={CheckCircle}/>
                     <Donut
                       segments={(BR.templateStatus || []).map(s => ({ ...s, label: s.status }))}
                       size={110} stroke={16} centerLabel="templates"
                     />
-                  </div>
+                  </Card3D>
 
                   {/* Category breakdown */}
-                  <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                  <Card3D className="p-6">
                     <SectionHeader title="Templates by Category" subtitle="Distribution across message types" icon={BarChart2}/>
                     {(BR.templateCategory || []).length ? (
                       <HBarChart
@@ -681,7 +962,7 @@ export default function AnalyticsPage() {
                         }))}
                       />
                     ) : <Empty label="No templates yet"/>}
-                  </div>
+                  </Card3D>
                 </div>
 
                 {/* Tip banner */}

@@ -15,7 +15,7 @@ const ALL_NAV = [
   { label: "Contacts",     href: "/contacts",     icon: Users,           roles: ["owner", "admin", "supervisor"] },
   { label: "Broadcasts",   href: "/broadcasts",   icon: Megaphone,       roles: ["owner", "admin", "supervisor"] },
   { label: "Templates",    href: "/templates",    icon: FileText,        roles: ["owner", "admin", "supervisor"] },
-  { label: "Chatbot",      href: "/chatbot",      icon: Bot,             roles: ["owner", "admin"] },
+  { label: "Chatbot",      href: "/chatbot",      icon: Bot,             roles: ["owner", "admin", "supervisor"] },
   { label: "Catalog",      href: "/catalog",      icon: Package,         roles: ["owner", "admin"] },
   { label: "Analytics",    href: "/analytics",    icon: BarChart3,       roles: ["owner", "admin", "supervisor"] },
   { label: "Integrations", href: "/integrations", icon: Puzzle,          roles: ["owner", "admin"] },

@@ -215,7 +215,41 @@ export async function GET(req) {
         value: b.deliveryRate,
         name: b.name,
       }));
+// ── Channel breakdown ──────────────────────────────────────
+    const channelStats = await db.channel.findMany({
+      where: { workspaceId },
+      include: {
+        _count: { select: { conversations: true } },
+        conversations: { select: { status: true } },
+      },
+    }).catch(() => []);
 
+    const channelBreakdown = channelStats.map(ch => ({
+      id: ch.id,
+      name: ch.name,
+      color: ch.color,
+      total: ch._count.conversations,
+      open: ch.conversations.filter(c => c.status === "OPEN").length,
+      resolved: ch.conversations.filter(c => c.status === "RESOLVED").length,
+      bot: ch.conversations.filter(c => c.status === "BOT").length,
+    }));
+
+    // ── Agent breakdown ────────────────────────────────────────
+    const agentStats = await db.workspaceMember.findMany({
+      where: { workspaceId, isActive: true },
+      include: {
+        conversations: { select: { status: true } },
+      },
+    }).catch(() => []);
+
+    const agentBreakdown = agentStats.map(m => ({
+      id: m.id,
+      name: m.name,
+      role: m.role,
+      total: m.conversations.length,
+      open: m.conversations.filter(c => c.status === "OPEN").length,
+      resolved: m.conversations.filter(c => c.status === "RESOLVED").length,
+    }));
     return NextResponse.json({
       totals: {
         contacts:             totalContacts,
@@ -244,6 +278,8 @@ export async function GET(req) {
         templateStatus:     Object.entries(tStatusMap).map(([status, count]) => ({ status, count })),
         templateCategory:   Object.entries(tCatMap).map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count),
         failureReasons,
+        channelBreakdown,
+        agentBreakdown,
       },
       tables: {
         recentBroadcasts:    broadcastStats.slice(0, 15),

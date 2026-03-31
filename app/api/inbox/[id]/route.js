@@ -44,7 +44,7 @@ export async function PATCH(req, context) {
         channel: { select: { id: true, name: true, color: true } },
       },
     });
-// Notify agent when assigned
+// Notify assigned agent
 if (assignedTo && assignedTo !== conversation.assignedTo) {
   try {
     await db.notification.create({
@@ -57,9 +57,30 @@ if (assignedTo && assignedTo !== conversation.assignedTo) {
         conversationId: id,
       },
     });
-  } catch (e) {
-    console.error("Assignment notification error:", e.message);
-  }
+  } catch (e) { console.error("Assignment notification error:", e.message); }
+}
+
+// Notify supervisors in the channel when channel is assigned
+if (channelId && channelId !== conversation.channelId) {
+  try {
+    const channelMembers = await db.channelMember.findMany({
+      where: { channelId },
+      include: { member: { select: { id: true, role: true } } },
+    });
+    const supervisors = channelMembers.filter(cm => cm.member.role === "SUPERVISOR");
+    if (supervisors.length > 0) {
+      await db.notification.createMany({
+        data: supervisors.map(cm => ({
+          workspaceId,
+          memberId: cm.member.id,
+          type: "new_conversation",
+          title: "New conversation in your channel",
+          body: `A conversation was assigned to your channel`,
+          conversationId: id,
+        })),
+      });
+    }
+  } catch (e) { console.error("Channel notification error:", e.message); }
 }
     return NextResponse.json({ conversation: updated });
   } catch (err) {

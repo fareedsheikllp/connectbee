@@ -36,7 +36,7 @@ function highlightVars(text) {
 
 // ─── Template Card ────────────────────────────────────────────────
 function TemplateCard({ template, onEdit, onDelete, onCopy, onSubmit, copied }) {
-  const status = META[template.metaStatus?.toUpperCase() || "NONE"];
+  const status = META[template.metaStatus?.toUpperCase() || "NONE"] ?? META["NONE"];
   const StatusIcon = status.icon;
 
   return (

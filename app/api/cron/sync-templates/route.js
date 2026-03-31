@@ -26,7 +26,7 @@ export async function GET(req) {
     const data = await res.json();
     const rawStatus = data.whatsapp?.status?.toLowerCase();
     const statusMap = { approved: "APPROVED", pending: "PENDING", rejected: "REJECTED" };
-    const status = statusMap[rawStatus] ?? rawStatus?.toUpperCase();
+    const status = statusMap[rawStatus] ?? null;
     if (status && status !== template.metaStatus) {
       await db.template.update({
         where: { id: template.id },

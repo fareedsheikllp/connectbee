@@ -68,7 +68,7 @@ export default function Sidebar({ user }) {
       {/* Settings + User */}
       <div className="border-t border-surface-200 p-3 space-y-0.5">
         {/* Only owner/admin sees Settings */}
-        {["owner", "admin", "supervisor"].includes(role) && (
+        {["owner", "admin", "supervisor", "agent"].includes(role) && (
           <Link
             href="/settings"
             className={cn("nav-item", pathname.startsWith("/settings") && "nav-item-active")}

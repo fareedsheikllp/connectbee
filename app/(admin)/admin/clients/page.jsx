@@ -148,6 +148,8 @@ export default function ClientsPage() {
     Object.entries(planConfig).map(([k, v]) => [k, {
       conversations: v.conversations >= 999999 ? "Unlimited" : v.conversations,
       flows:         v.flows >= 999 ? "Unlimited" : v.flows,
+      agents:        v.agents >= 999 ? "Unlimited" : v.agents,
+      channels:      v.channels >= 999 ? "Unlimited" : v.channels,
       price:         v.priceLabel,
     }])
   );
@@ -242,7 +244,7 @@ export default function ClientsPage() {
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid #f3f3f3", background: "#fafafa" }}>
-                {["Client", "Plan", "Conversations", "Flows", "Status", "Joined", ""].map((h) => (
+                {["Client", "Plan", "Conversations", "Agents", "Channels", "Status", "Joined", ""].map((h) => (
                   <th key={h} className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-5 py-3">{h}</th>
                 ))}
               </tr>
@@ -283,7 +285,10 @@ export default function ClientsPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-[13px] text-gray-500">
-                      {c.flowsCount ?? 0}<span className="text-gray-300"> / {limits?.flows ?? "—"}</span>
+                      {c.membersCount ?? 0}<span className="text-gray-300"> / {limits?.agents ?? "—"}</span>
+                    </td>
+                    <td className="px-5 py-3.5 text-[13px] text-gray-500">
+                      {c.channelsCount ?? 0}<span className="text-gray-300"> / {limits?.channels ?? "—"}</span>
                     </td>
                     <td className="px-5 py-3.5">
                       <button onClick={() => toggleStatus(c)} disabled={togglingId === c.id}

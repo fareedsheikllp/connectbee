@@ -6,10 +6,10 @@ const { db: prisma } = pkg;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
 const DEFAULTS = [
-  { planKey: "trial",      label: "Trial",      priceLabel: "Free",       price: 0,      conversations: 100,   flows: 1, agents: 1  },
-  { planKey: "starter",    label: "Starter",    priceLabel: "$99.99/mo",  price: 99.99,  conversations: 1000,  flows: 3, agents: 2  },
-  { planKey: "growth",     label: "Growth",     priceLabel: "$149.99/mo", price: 149.99, conversations: 10000, flows: 10, agents: 10 },
-  { planKey: "enterprise", label: "Enterprise", priceLabel: "Custom",     price: 0,      conversations: 999999, flows: 999, agents: 999 },
+  { planKey: "trial",      label: "Trial",      priceLabel: "Free",       price: 0,      conversations: 100,   flows: 1,   agents: 1,   channels: 1   },
+  { planKey: "starter",    label: "Starter",    priceLabel: "$99.99/mo",  price: 99.99,  conversations: 1000,  flows: 3,   agents: 2,   channels: 2   },
+  { planKey: "growth",     label: "Growth",     priceLabel: "$149.99/mo", price: 149.99, conversations: 10000, flows: 10,  agents: 10,  channels: 5   },
+  { planKey: "enterprise", label: "Enterprise", priceLabel: "Custom",     price: 0,      conversations: 999999, flows: 999, agents: 999, channels: 999 },
 ];
 
 async function isAdmin() {
@@ -51,6 +51,7 @@ export async function PATCH(request) {
         conversations: parseInt(conversations),
         flows:         parseInt(flows),
         agents:        parseInt(agents),
+        channels:      parseInt(channels || 999),
       },
     });
 

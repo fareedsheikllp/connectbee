@@ -285,6 +285,8 @@ model PlanConfig {
   flows         Int
   agents        Int
   updatedAt     DateTime @updatedAt
+  channels Int @default(999)
+
 }
 
 enum ConversationStatus {

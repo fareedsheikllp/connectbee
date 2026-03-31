@@ -99,6 +99,8 @@ export default function ClientDetailPage() {
   const planLimits = {
     conversations: pc.conversations >= 999999 ? null : pc.conversations,
     flows:         pc.flows >= 999 ? null : pc.flows,
+    agents:        pc.agents >= 999 ? null : pc.agents,
+    channels:      pc.channels >= 999 ? null : pc.channels,
   };
 
   return (
@@ -154,12 +156,18 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-3 mb-4">
+      {/* Stats row 1 */}
+      <div className="grid grid-cols-3 gap-3 mb-3">
         <StatPill label="Conversations" value={client.conversationsUsed ?? 0} limit={planLimits.conversations} color="bg-emerald-400" />
         <StatPill label="Chatbot Flows"  value={client.flowsCount ?? 0}        limit={planLimits.flows}         color="bg-emerald-400" />
-        <StatPill label="Contacts"       value={client.contactsCount ?? 0}                                      color="bg-slate-400" />
-        <StatPill label="Broadcasts"     value={client.broadcastsCount ?? 0}                                    color="bg-slate-400" />
+        <StatPill label="Agents"         value={client.membersCount ?? 0}      limit={planLimits.agents}        color="bg-violet-400" />
+      </div>
+
+      {/* Stats row 2 */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <StatPill label="Channels"   value={client.channelsCount ?? 0}   limit={planLimits.channels}   color="bg-blue-400" />
+        <StatPill label="Contacts"   value={client.contactsCount ?? 0}                                 color="bg-slate-400" />
+        <StatPill label="Broadcasts" value={client.broadcastsCount ?? 0}                               color="bg-slate-400" />
       </div>
 
       {/* Plan management */}
@@ -196,6 +204,7 @@ export default function ClientDetailPage() {
                     <li className="text-[11px] text-gray-400">{kpc.conversations >= 999999 ? "Unlimited" : (kpc.conversations || 0).toLocaleString()} conversations</li>
                     <li className="text-[11px] text-gray-400">{kpc.flows >= 999 ? "Unlimited" : kpc.flows || 0} flows</li>
                     <li className="text-[11px] text-gray-400">{kpc.agents >= 999 ? "Unlimited" : kpc.agents || 0} agents</li>
+                    <li className="text-[11px] text-gray-400">{kpc.channels >= 999 ? "Unlimited" : kpc.channels || 0} channels</li>
                   </ul>
                 </button>
               );
@@ -215,7 +224,8 @@ export default function ClientDetailPage() {
           </div>
         </div>
       </div>
-{/* Twilio Credentials */}
+
+      {/* Twilio Credentials */}
       <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm overflow-hidden mt-4">
         <div className="px-6 py-4 border-b border-gray-100" style={{ background: "#fafafa" }}>
           <h2 className="text-[14px] font-semibold text-gray-800">Twilio Credentials</h2>
@@ -251,7 +261,7 @@ export default function ClientDetailPage() {
               autoComplete="off"
               value={client.twilioPhoneNumber || ""}
               onChange={(e) => setClient(p => ({ ...p, twilioPhoneNumber: e.target.value }))}
-              placeholder="+16472787987"
+              placeholder="+11234567890"
               className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 placeholder:text-gray-300 font-mono"
             />
           </div>
@@ -283,6 +293,7 @@ export default function ClientDetailPage() {
           </div>
         </div>
       </div>
+
       {/* Delete modal */}
       {showDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

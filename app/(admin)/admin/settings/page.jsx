@@ -17,7 +17,7 @@ const PLAN_BADGE = {
 
 export default function SettingsPage() {
   const [plans, setPlans]       = useState([]);
-  const [editing, setEditing]   = useState(null); // planKey being edited
+  const [editing, setEditing]   = useState(null);
   const [form, setForm]         = useState({});
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(null);
@@ -37,6 +37,7 @@ export default function SettingsPage() {
       conversations: plan.conversations,
       flows:         plan.flows,
       agents:        plan.agents,
+      channels:      plan.channels ?? 999,
     });
   }
 
@@ -130,6 +131,7 @@ export default function SettingsPage() {
 
               {/* Card body */}
               <div className="px-5 py-4 space-y-3">
+
                 {/* Price */}
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Price / month</p>
@@ -203,6 +205,24 @@ export default function SettingsPage() {
                     </p>
                   )}
                 </div>
+
+                {/* Channels */}
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Channels</p>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      value={form.channels}
+                      onChange={e => set("channels", e.target.value)}
+                      className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 text-right"
+                    />
+                  ) : (
+                    <p className="text-sm font-bold text-gray-900">
+                      {(plan.channels ?? 999) >= 999 ? "Unlimited" : plan.channels}
+                    </p>
+                  )}
+                </div>
+
               </div>
             </div>
           );

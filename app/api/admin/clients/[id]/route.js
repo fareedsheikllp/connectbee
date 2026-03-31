@@ -51,6 +51,8 @@ export async function GET(request, { params }) {
                 chatbots: true,
                 conversations: true,
                 broadcasts: true,
+                members: true,
+                channels: true,
               },
             },
           },
@@ -67,7 +69,7 @@ export async function GET(request, { params }) {
         name: user.name || user.workspace?.name || null,
         plan: user.workspace?.plan?.toLowerCase() || user.plan || "starter",
         status: user.status || "active",
-        conversationsUsed: user.conversationsUsed ?? 0,
+        conversationsUsed: user.workspace?._count?.conversations ?? 0,
         createdAt: user.createdAt,
         workspaceId: user.workspace?.id || null,
         waVerified: user.workspace?.waVerified || false,
@@ -76,6 +78,8 @@ export async function GET(request, { params }) {
         flowsCount: user.workspace?._count?.chatbots ?? 0,
         conversationsCount: user.workspace?._count?.conversations ?? 0,
         broadcastsCount: user.workspace?._count?.broadcasts ?? 0,
+        membersCount: user.workspace?._count?.members ?? 0,
+        channelsCount: user.workspace?._count?.channels ?? 0,
         twilioAccountSid:  user.workspace?.twilioAccountSid  || null,
         twilioAuthToken:   user.workspace?.twilioAuthToken   || null,
         twilioPhoneNumber: user.workspace?.twilioPhoneNumber || null,
@@ -106,19 +110,18 @@ export async function PATCH(request, { params }) {
 
     await prisma.user.update({ where: { id }, data: userUpdate });
 
-    // Also update Workspace.plan enum
-const workspace = await prisma.workspace.findUnique({ where: { userId: id } });
-if (workspace) {
-  await prisma.workspace.update({
-    where: { userId: id },
-    data: {
-      ...(plan && { plan: PLAN_MAP[plan] }),
-      ...(twilioAccountSid  !== undefined && { twilioAccountSid }),
-      ...(twilioAuthToken   !== undefined && { twilioAuthToken }),
-      ...(twilioPhoneNumber !== undefined && { twilioPhoneNumber }),
-    },
-  });
-}
+    const workspace = await prisma.workspace.findUnique({ where: { userId: id } });
+    if (workspace) {
+      await prisma.workspace.update({
+        where: { userId: id },
+        data: {
+          ...(plan && { plan: PLAN_MAP[plan] }),
+          ...(twilioAccountSid  !== undefined && { twilioAccountSid }),
+          ...(twilioAuthToken   !== undefined && { twilioAuthToken }),
+          ...(twilioPhoneNumber !== undefined && { twilioPhoneNumber }),
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, plan, status });
   } catch (error) {

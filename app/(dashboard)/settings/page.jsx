@@ -9,13 +9,6 @@ import {
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
 
-const TABS = [
-  { id: "profile",       label: "Profile",       icon: User         },
-  { id: "notifications", label: "Notifications", icon: Bell         },
-  { id: "security",      label: "Security",      icon: Shield       },
-  { id: "team",          label: "Team",          icon: Users        },
-];
-
 const SETUP_STEPS = [
   { n: 1, label: "Create a Meta Developer account",     link: "https://developers.facebook.com", done: false },
   { n: 2, label: "Create a Meta App (type: Business)",  link: "https://developers.facebook.com/apps", done: false },
@@ -48,6 +41,16 @@ export default function SettingsPage() {
   const [savingMember, setSavingMember] = useState(false);
   const [savingChannel, setSavingChannel] = useState(false);
   const { data: session } = useSession();
+
+  // TABS defined inside component so session is available
+  const isAgent = session?.user?.role === "agent";
+  const TABS = [
+    { id: "profile",       label: "Profile",       icon: User    },
+    { id: "notifications", label: "Notifications", icon: Bell    },
+    { id: "security",      label: "Security",      icon: Shield  },
+    ...(!isAgent ? [{ id: "team", label: "Team", icon: Users }] : []),
+  ];
+
   useEffect(() => { fetchSettings(); }, []);
   useEffect(() => { if (tab === "team") fetchTeam(); }, [tab]);
 
@@ -126,6 +129,7 @@ export default function SettingsPage() {
     } catch { toast.error("Something went wrong"); }
     finally { setSavingProfile(false); }
   }
+
   async function fetchTeam() {
     setLoadingTeam(true);
     try {
@@ -178,11 +182,9 @@ export default function SettingsPage() {
   async function toggleMember(id, currentlyActive) {
     try {
       if (currentlyActive) {
-        // Deactivate — soft delete
         await fetch(`/api/members/${id}`, { method: "DELETE" });
         toast.success("Member deactivated");
       } else {
-        // Reactivate
         await fetch(`/api/members/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -270,139 +272,6 @@ export default function SettingsPage() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-
-          {/* WhatsApp Tab */}
-          {tab === "whatsapp" && (
-            <div className="space-y-5">
-
-              {/* Status Banner */}
-              <div className={`flex items-center gap-3 p-4 rounded-2xl border ${connected ? "bg-brand-50 border-brand-200" : "bg-amber-50 border-amber-200"}`}>
-                {connected
-                  ? <CheckCircle2 size={20} className="text-brand-600 flex-shrink-0" />
-                  : <AlertCircle size={20} className="text-amber-600 flex-shrink-0" />
-                }
-                <div>
-                  <p className={`font-semibold text-sm ${connected ? "text-brand-800" : "text-amber-800"}`}>
-                    {connected ? "WhatsApp Connected" : "WhatsApp Not Connected"}
-                  </p>
-                  <p className={`text-xs mt-0.5 ${connected ? "text-brand-600" : "text-amber-600"}`}>
-                    {connected
-                      ? "Your WhatsApp Business API is connected and ready to send messages."
-                      : "Follow the steps below to connect your WhatsApp Business API."}
-                  </p>
-                </div>
-              </div>
-
-              {/* Setup Guide */}
-              {!connected && (
-                <div className="card p-5">
-                  <h3 className="font-bold text-ink-800 mb-4 flex items-center gap-2">
-                    <Zap size={16} className="text-brand-500" />
-                    Setup Guide
-                  </h3>
-                  <div className="space-y-3">
-                    {SETUP_STEPS.map((step) => (
-                      <div key={step.n} className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-surface-100 border-2 border-surface-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-xs font-bold text-ink-400">{step.n}</span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-ink-700">{step.label}</p>
-                        </div>
-                        {step.link && (
-                          <a href={step.link} target="_blank" rel="noreferrer" className="text-brand-600 hover:text-brand-700 flex-shrink-0">
-                            <ExternalLink size={14} />
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Credentials Form */}
-              <div className="card p-6">
-                <h3 className="font-bold text-ink-800 mb-5">API Credentials</h3>
-                {loading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 size={20} className="animate-spin text-brand-500" />
-                  </div>
-                ) : (
-                  <form onSubmit={saveWhatsApp} className="space-y-4">
-                    <div>
-                      <label className="field-label">Phone Number ID <span className="text-red-400">*</span></label>
-                      <input
-                        placeholder="123456789012345"
-                        value={form.phoneNumberId}
-                        onChange={e => setForm(p => ({ ...p, phoneNumberId: e.target.value }))}
-                        className="field-input font-mono"
-                      />
-                      <p className="field-hint">Found in Meta Developer Console → WhatsApp → API Setup</p>
-                    </div>
-
-                    <div>
-                      <label className="field-label">Permanent Access Token <span className="text-red-400">*</span></label>
-                      <div className="relative">
-                        <input
-                          type={showToken ? "text" : "password"}
-                          placeholder="EAAxxxxxxxxx..."
-                          value={form.accessToken}
-                          onChange={e => setForm(p => ({ ...p, accessToken: e.target.value }))}
-                          className="field-input font-mono pr-11"
-                        />
-                        <button type="button" onClick={() => setShowToken(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600">
-                          {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                      <p className="field-hint">Generate a permanent token in System Users under Meta Business Suite</p>
-                    </div>
-
-                    <div>
-                      <label className="field-label">WhatsApp Business Account ID</label>
-                      <input
-                        placeholder="123456789012345"
-                        value={form.businessAccountId}
-                        onChange={e => setForm(p => ({ ...p, businessAccountId: e.target.value }))}
-                        className="field-input font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="field-label">Webhook Verify Token</label>
-                      <input
-                        placeholder="make_up_any_random_string"
-                        value={form.webhookVerifyToken}
-                        onChange={e => setForm(p => ({ ...p, webhookVerifyToken: e.target.value }))}
-                        className="field-input font-mono"
-                      />
-                      <p className="field-hint">
-                        Set this in Meta → Webhooks → Verify Token. Your webhook URL is:{" "}
-                        <code className="bg-surface-100 px-1.5 py-0.5 rounded text-xs text-ink-700">
-                          {typeof window !== "undefined" ? window.location.origin : ""}/api/whatsapp/webhook
-                        </code>
-                      </p>
-                    </div>
-
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={testConnection}
-                        disabled={testing}
-                        className="btn-secondary gap-2"
-                      >
-                        {testing ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
-                        Test Connection
-                      </button>
-                      <button type="submit" disabled={saving} className="btn-primary gap-2">
-                        {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                        Save Credentials
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Profile Tab */}
           {tab === "profile" && (
@@ -495,207 +364,211 @@ export default function SettingsPage() {
             </div>
           )}
 
-        {/* Team Tab */}
-        {tab === "team" && (
-          <div className="space-y-6">
-            {/* Channels Section */}
-            <div className="card p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <h3 className="font-bold text-ink-800">Channels</h3>
-                  <p className="text-xs text-ink-400 mt-0.5">Departments like Sales, Support, Billing</p>
-                </div>
-                {session?.user?.role !== "supervisor" && (
-                  <button
-                    onClick={() => toggleMember(member.id, member.isActive)}
-                    className={`text-xs font-semibold px-2 py-1 rounded-lg border transition-all ${
-                      member.isActive
-                        ? "text-red-500 border-red-100 hover:bg-red-50"
-                        : "text-green-600 border-green-100 hover:bg-green-50"
-                    }`}
-                  >
-                    {member.isActive ? "Deactivate" : "Activate"}
-                  </button>
-                )}
-              </div>
+          {/* Team Tab */}
+          {tab === "team" && (
+            <div className="space-y-6">
 
-              {/* Add Channel Form */}
-              {showAddChannel && (
-                <form onSubmit={createChannel} className="mb-5 p-4 bg-surface-50 rounded-xl border border-surface-200 space-y-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-ink-700">New Channel</p>
-                    <button type="button" onClick={() => setShowAddChannel(false)}><X size={15} className="text-ink-400" /></button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="field-label">Name <span className="text-red-400">*</span></label>
-                      <input value={newChannel.name} onChange={e => setNewChannel(p => ({ ...p, name: e.target.value }))} className="field-input" placeholder="e.g. Sales" />
-                    </div>
-                    <div>
-                      <label className="field-label">Color</label>
-                      <input type="color" value={newChannel.color} onChange={e => setNewChannel(p => ({ ...p, color: e.target.value }))} className="h-10 w-full rounded-xl border border-surface-200 cursor-pointer" />
-                    </div>
-                  </div>
+              {/* Channels Section */}
+              <div className="card p-6">
+                <div className="flex items-center justify-between mb-5">
                   <div>
-                    <label className="field-label">Description</label>
-                    <input value={newChannel.description} onChange={e => setNewChannel(p => ({ ...p, description: e.target.value }))} className="field-input" placeholder="Optional description" />
+                    <h3 className="font-bold text-ink-800">Channels</h3>
+                    <p className="text-xs text-ink-400 mt-0.5">Departments like Sales, Support, Billing</p>
                   </div>
-                  <button type="submit" disabled={savingChannel} className="btn-primary btn-sm gap-2">
-                    {savingChannel ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Create Channel
-                  </button>
-                </form>
-              )}
+                  {session?.user?.role !== "supervisor" && (
+                    <button onClick={() => setShowAddChannel(p => !p)} className="btn-primary btn-sm gap-1.5">
+                      <Plus size={14} /> New Channel
+                    </button>
+                  )}
+                </div>
 
-              {loadingTeam ? (
-                <div className="flex justify-center py-6"><Loader2 size={20} className="animate-spin text-brand-500" /></div>
-              ) : team.channels.length === 0 ? (
-                <p className="text-sm text-ink-400 text-center py-6">No channels yet — create one above</p>
-              ) : (
-                <div className="space-y-3">
-                  {team.channels.map(channel => (
-                    <div key={channel.id} className="p-4 rounded-xl border border-surface-200 bg-surface-50">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: channel.color }} />
-                          <div>
-                            <p className="text-sm font-semibold text-ink-800">{channel.name}</p>
-                            {channel.description && <p className="text-xs text-ink-400">{channel.description}</p>}
+                {/* Add Channel Form */}
+                {showAddChannel && (
+                  <form onSubmit={createChannel} className="mb-5 p-4 bg-surface-50 rounded-xl border border-surface-200 space-y-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-semibold text-ink-700">New Channel</p>
+                      <button type="button" onClick={() => setShowAddChannel(false)}><X size={15} className="text-ink-400" /></button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="field-label">Name <span className="text-red-400">*</span></label>
+                        <input value={newChannel.name} onChange={e => setNewChannel(p => ({ ...p, name: e.target.value }))} className="field-input" placeholder="e.g. Sales" />
+                      </div>
+                      <div>
+                        <label className="field-label">Color</label>
+                        <input type="color" value={newChannel.color} onChange={e => setNewChannel(p => ({ ...p, color: e.target.value }))} className="h-10 w-full rounded-xl border border-surface-200 cursor-pointer" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="field-label">Description</label>
+                      <input value={newChannel.description} onChange={e => setNewChannel(p => ({ ...p, description: e.target.value }))} className="field-input" placeholder="Optional description" />
+                    </div>
+                    <button type="submit" disabled={savingChannel} className="btn-primary btn-sm gap-2">
+                      {savingChannel ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Create Channel
+                    </button>
+                  </form>
+                )}
+
+                {loadingTeam ? (
+                  <div className="flex justify-center py-6"><Loader2 size={20} className="animate-spin text-brand-500" /></div>
+                ) : team.channels.length === 0 ? (
+                  <p className="text-sm text-ink-400 text-center py-6">No channels yet — create one above</p>
+                ) : (
+                  <div className="space-y-3">
+                    {team.channels.map(channel => (
+                      <div key={channel.id} className="p-4 rounded-xl border border-surface-200 bg-surface-50">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: channel.color }} />
+                            <div>
+                              <p className="text-sm font-semibold text-ink-800">{channel.name}</p>
+                              {channel.description && <p className="text-xs text-ink-400">{channel.description}</p>}
+                            </div>
+                            <span className="text-xs text-ink-400 bg-surface-100 px-2 py-0.5 rounded-full">
+                              {channel._count?.conversations || 0} convos
+                            </span>
                           </div>
-                          <span className="text-xs text-ink-400 bg-surface-100 px-2 py-0.5 rounded-full">
-                            {channel._count?.conversations || 0} convos
-                          </span>
+                          {session?.user?.role !== "supervisor" && (
+                            <button onClick={() => deleteChannel(channel.id)} className="text-red-400 hover:text-red-600 p-1">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
+
+                        {/* Members in this channel */}
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {channel.members.map(({ member }) => (
+                            <div key={member.id} className="flex items-center gap-1 bg-white border border-surface-200 rounded-full px-2.5 py-1 text-xs">
+                              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-[9px] font-bold">
+                                {member.name[0].toUpperCase()}
+                              </div>
+                              <span className="text-ink-700">{member.name}</span>
+                              {session?.user?.role !== "supervisor" && (
+                                <button onClick={() => removeMemberFromChannel(channel.id, member.id)} className="text-ink-300 hover:text-red-400 ml-0.5">
+                                  <X size={10} />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Add member to channel */}
                         {session?.user?.role !== "supervisor" && (
-                          <button onClick={() => deleteChannel(channel.id)} className="text-red-400 hover:text-red-600 p-1">
-                            <Trash2 size={14} />
-                          </button>
+                          <select
+                            onChange={e => { if (e.target.value) { assignMemberToChannel(channel.id, e.target.value); e.target.value = ""; }}}
+                            className="text-xs border border-slate-200 rounded-lg px-2 py-1 text-ink-500 bg-white"
+                            defaultValue=""
+                          >
+                            <option value="" disabled>+ Add member</option>
+                            {team.members
+                              .filter(m => !channel.members.some(cm => cm.member.id === m.id))
+                              .map(m => (
+                                <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                              ))}
+                          </select>
                         )}
                       </div>
-
-                      {/* Members in this channel */}
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {channel.members.map(({ member }) => (
-                          <div key={member.id} className="flex items-center gap-1 bg-white border border-surface-200 rounded-full px-2.5 py-1 text-xs">
-                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-[9px] font-bold">
-                              {member.name[0].toUpperCase()}
-                            </div>
-                            <span className="text-ink-700">{member.name}</span>
-                            <button onClick={() => removeMemberFromChannel(channel.id, member.id)} className="text-ink-300 hover:text-red-400 ml-0.5">
-                              <X size={10} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Add member to channel */}
-                      {session?.user?.role !== "supervisor" && (
-                        <select
-                          onChange={e => { if (e.target.value) { assignMemberToChannel(channel.id, e.target.value); e.target.value = ""; }}}
-                          className="text-xs border border-slate-200 rounded-lg px-2 py-1 text-ink-500 bg-white"
-                          defaultValue=""
-                        >
-                          <option value="" disabled>+ Add member</option>
-                          {team.members
-                            .filter(m => !channel.members.some(cm => cm.member.id === m.id))
-                            .map(m => (
-                              <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
-                            ))}
-                        </select>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Members Section */}
-            <div className="card p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <h3 className="font-bold text-ink-800">Team Members</h3>
-                  <p className="text-xs text-ink-400 mt-0.5">Agents and supervisors who can log in</p>
-                </div>
-                {session?.user?.role !== "supervisor" && (
-                  <button onClick={() => setShowAddMember(p => !p)} className="btn-primary btn-sm gap-1.5">
-                    <Plus size={14} /> Add Member
-                  </button>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Add Member Form */}
-              {showAddMember && (
-                <form onSubmit={createMember} className="mb-5 p-4 bg-surface-50 rounded-xl border border-surface-200 space-y-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-ink-700">New Member</p>
-                    <button type="button" onClick={() => setShowAddMember(false)}><X size={15} className="text-ink-400" /></button>
+              {/* Members Section */}
+              <div className="card p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h3 className="font-bold text-ink-800">Team Members</h3>
+                    <p className="text-xs text-ink-400 mt-0.5">Agents and supervisors who can log in</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="field-label">Full Name <span className="text-red-400">*</span></label>
-                      <input value={newMember.name} onChange={e => setNewMember(p => ({ ...p, name: e.target.value }))} className="field-input" placeholder="Sara Ahmed" />
-                    </div>
-                    <div>
-                      <label className="field-label">Email <span className="text-red-400">*</span></label>
-                      <input type="email" value={newMember.email} onChange={e => setNewMember(p => ({ ...p, email: e.target.value }))} className="field-input" placeholder="sara@company.com" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="field-label">Password <span className="text-red-400">*</span></label>
-                      <input type="password" value={newMember.password} onChange={e => setNewMember(p => ({ ...p, password: e.target.value }))} className="field-input" placeholder="••••••••" />
-                    </div>
-                    <div>
-                      <label className="field-label">Role</label>
-                      <select value={newMember.role} onChange={e => setNewMember(p => ({ ...p, role: e.target.value }))} className="field-input">
-                        <option value="AGENT">Agent</option>
-                        <option value="SUPERVISOR">Supervisor</option>
-                      </select>
-                    </div>
-                  </div>
-                  <button type="submit" disabled={savingMember} className="btn-primary btn-sm gap-2">
-                    {savingMember ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Add Member
-                  </button>
-                </form>
-              )}
-
-              {loadingTeam ? (
-                <div className="flex justify-center py-6"><Loader2 size={20} className="animate-spin text-brand-500" /></div>
-              ) : team.members.length === 0 ? (
-                <p className="text-sm text-ink-400 text-center py-6">No team members yet — add one above</p>
-              ) : (
-                <div className="space-y-2">
-                  {team.members.map(member => (
-                    <div key={member.id} className="flex items-center justify-between p-3 rounded-xl border border-surface-200 bg-surface-50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-bold">
-                          {member.name[0].toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-ink-800">{member.name}</p>
-                          <p className="text-xs text-ink-400">{member.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${member.role === "SUPERVISOR" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                          {member.role}
-                        </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${member.isActive ? "bg-brand-50 text-brand-600" : "bg-surface-100 text-ink-400"}`}>
-                          {member.isActive ? "Active" : "Inactive"}
-                        </span>
-                        {session?.user?.role !== "supervisor" && (
-                          <button onClick={() => deleteMember(member.id)} className="text-red-400 hover:text-red-600 p-1">
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                  {session?.user?.role !== "supervisor" && (
+                    <button onClick={() => setShowAddMember(p => !p)} className="btn-primary btn-sm gap-1.5">
+                      <Plus size={14} /> Add Member
+                    </button>
+                  )}
                 </div>
-              )} 
-            </div>
 
-          </div>
-        )}
+                {/* Add Member Form */}
+                {showAddMember && (
+                  <form onSubmit={createMember} className="mb-5 p-4 bg-surface-50 rounded-xl border border-surface-200 space-y-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-semibold text-ink-700">New Member</p>
+                      <button type="button" onClick={() => setShowAddMember(false)}><X size={15} className="text-ink-400" /></button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="field-label">Full Name <span className="text-red-400">*</span></label>
+                        <input value={newMember.name} onChange={e => setNewMember(p => ({ ...p, name: e.target.value }))} className="field-input" placeholder="Sara Ahmed" />
+                      </div>
+                      <div>
+                        <label className="field-label">Email <span className="text-red-400">*</span></label>
+                        <input type="email" value={newMember.email} onChange={e => setNewMember(p => ({ ...p, email: e.target.value }))} className="field-input" placeholder="sara@company.com" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="field-label">Password <span className="text-red-400">*</span></label>
+                        <input type="password" value={newMember.password} onChange={e => setNewMember(p => ({ ...p, password: e.target.value }))} className="field-input" placeholder="••••••••" />
+                      </div>
+                      <div>
+                        <label className="field-label">Role</label>
+                        <select value={newMember.role} onChange={e => setNewMember(p => ({ ...p, role: e.target.value }))} className="field-input">
+                          <option value="AGENT">Agent</option>
+                          <option value="SUPERVISOR">Supervisor</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button type="submit" disabled={savingMember} className="btn-primary btn-sm gap-2">
+                      {savingMember ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Add Member
+                    </button>
+                  </form>
+                )}
+
+                {loadingTeam ? (
+                  <div className="flex justify-center py-6"><Loader2 size={20} className="animate-spin text-brand-500" /></div>
+                ) : team.members.length === 0 ? (
+                  <p className="text-sm text-ink-400 text-center py-6">No team members yet — add one above</p>
+                ) : (
+                  <div className="space-y-2">
+                    {team.members.map(member => (
+                      <div key={member.id} className="flex items-center justify-between p-3 rounded-xl border border-surface-200 bg-surface-50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-bold">
+                            {member.name[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-ink-800">{member.name}</p>
+                            <p className="text-xs text-ink-400">{member.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${member.role === "SUPERVISOR" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                            {member.role}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full ${member.isActive ? "bg-brand-50 text-brand-600" : "bg-surface-100 text-ink-400"}`}>
+                            {member.isActive ? "Active" : "Inactive"}
+                          </span>
+                          {session?.user?.role !== "supervisor" && (
+                            <button
+                              onClick={() => toggleMember(member.id, member.isActive)}
+                              className={`text-xs font-semibold px-2 py-1 rounded-lg border transition-all ${
+                                member.isActive
+                                  ? "text-red-500 border-red-100 hover:bg-red-50"
+                                  : "text-green-600 border-green-100 hover:bg-green-50"
+                              }`}
+                            >
+                              {member.isActive ? "Deactivate" : "Activate"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
         </div>
       </div>
     </div>

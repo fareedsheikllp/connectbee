@@ -2,15 +2,22 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+async function getWorkspaceId(session) {
+  if (session.user.role === "owner" || session.user.role === "admin") {
+    const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
+    return workspace?.id ?? null;
+  }
+  return session.user.workspaceId ?? null;
+}
+
 export async function PATCH(req, context) {
   try {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await context.params;
+    const workspaceId = await getWorkspaceId(session);
     const data = await req.json();
-    const template = await db.template.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
-    });
+    const template = await db.template.findFirst({ where: { id, workspaceId } });
     if (!template) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const updated = await db.template.update({
       where: { id },
@@ -32,9 +39,8 @@ export async function DELETE(req, context) {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await context.params;
-    const template = await db.template.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
-    });
+    const workspaceId = await getWorkspaceId(session);
+    const template = await db.template.findFirst({ where: { id, workspaceId } });
     if (!template) return NextResponse.json({ error: "Not found" }, { status: 404 });
     await db.template.delete({ where: { id } });
     return NextResponse.json({ success: true });

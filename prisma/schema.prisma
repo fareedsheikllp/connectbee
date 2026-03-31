@@ -311,6 +311,17 @@ model Message {
   readAt         DateTime?
   isInternal Boolean @default(false)
 }
+model Notification {
+  id          String   @id @default(cuid())
+  workspaceId String
+  memberId    String?  // null = owner gets it
+  type        String   // "new_conversation" | "assigned" | "new_message"
+  title       String
+  body        String
+  read        Boolean  @default(false)
+  conversationId String?
+  createdAt   DateTime @default(now())
+}
 
 model CannedResponse {
   id          String   @id @default(cuid())

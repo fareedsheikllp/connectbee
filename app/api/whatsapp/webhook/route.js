@@ -92,6 +92,35 @@ export async function POST(req) {
         },
       });
       await incrementConversationsUsed(ws.id);
+      // Notify owner + all supervisors of new conversation
+try {
+  const supervisors = await db.workspaceMember.findMany({
+    where: { workspaceId: ws.id, role: "SUPERVISOR", isActive: true },
+    select: { id: true },
+  });
+  await db.notification.createMany({
+    data: [
+      {
+        workspaceId: ws.id,
+        memberId: null,
+        type: "new_conversation",
+        title: "New conversation",
+        body: `New message from ${contact.name || contact.phone}`,
+        conversationId: conversation.id,
+      },
+      ...supervisors.map(s => ({
+        workspaceId: ws.id,
+        memberId: s.id,
+        type: "new_conversation",
+        title: "New conversation",
+        body: `New message from ${contact.name || contact.phone}`,
+        conversationId: conversation.id,
+      })),
+    ],
+  });
+} catch (e) {
+  console.error("Notification error:", e.message);
+}
     } else {
       await db.conversation.update({
         where: { id: conversation.id },

@@ -44,7 +44,23 @@ export async function PATCH(req, context) {
         channel: { select: { id: true, name: true, color: true } },
       },
     });
-
+// Notify agent when assigned
+if (assignedTo && assignedTo !== conversation.assignedTo) {
+  try {
+    await db.notification.create({
+      data: {
+        workspaceId,
+        memberId: assignedTo,
+        type: "assigned",
+        title: "Conversation assigned to you",
+        body: `You have a new conversation assigned`,
+        conversationId: id,
+      },
+    });
+  } catch (e) {
+    console.error("Assignment notification error:", e.message);
+  }
+}
     return NextResponse.json({ conversation: updated });
   } catch (err) {
     console.error(err);

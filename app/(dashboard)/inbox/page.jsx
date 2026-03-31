@@ -681,7 +681,20 @@ export default function InboxPage() {
   useEffect(() => {
     fetchConversations();
     const iv = setInterval(async () => {
-      try { const r = await fetch("/api/inbox"); const d = await r.json(); setConversations(d.conversations || []); } catch {}
+      try {
+        const r = await fetch("/api/inbox");
+        const d = await r.json();
+        setConversations(prev => {
+          const incoming = d.conversations || [];
+          // Merge — keep local state for selected conversation to avoid flicker
+          return incoming.map(c => {
+            const existing = prev.find(p => p.id === c.id);
+            // If this is the selected conversation, prefer local state to avoid overwriting mid-edit
+            if (selected?.id === c.id) return { ...c, ...existing, assignedMember: existing?.assignedMember, channel: existing?.channel };
+            return c;
+          });
+        });
+      } catch {}
     }, 3000);
     return () => clearInterval(iv);
   }, []);

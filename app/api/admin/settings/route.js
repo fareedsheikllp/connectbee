@@ -22,11 +22,11 @@ export async function GET() {
   if (!await isAdmin()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    let plans = await prisma.planConfig.findMany({ orderBy: { price: "asc" } });
+    let plans = await prisma.planConfig.findMany({ orderBy: { id: "asc" } });
 
     if (plans.length === 0) {
       await prisma.planConfig.createMany({ data: DEFAULTS });
-      plans = await prisma.planConfig.findMany({ orderBy: { price: "asc" } });
+      plans = await prisma.planConfig.findMany({ orderBy: { id: "asc" } });
     }
 
     return NextResponse.json({ plans });
@@ -41,7 +41,7 @@ export async function PATCH(request) {
   if (!await isAdmin()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { planKey, price, conversations, flows, agents, priceLabel } = await request.json();
+    const { planKey, price, conversations, flows, agents, channels, priceLabel } = await request.json();
 
     const updated = await prisma.planConfig.update({
       where: { planKey },

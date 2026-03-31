@@ -38,7 +38,13 @@ export async function POST(req) {
 
   const workspaceId = await getWorkspaceId(session);
   if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
-
+  // Check channel limit
+  const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } });
+  const planConfig = await prisma.planConfig.findUnique({ where: { planKey: workspace?.plan?.toLowerCase() || "trial" } });
+  const currentChannels = await prisma.channel.count({ where: { workspaceId } });
+  if (planConfig && currentChannels >= planConfig.channels) {
+    return NextResponse.json({ error: `Your plan allows a maximum of ${planConfig.channels} channels. Upgrade to add more.` }, { status: 403 });
+  }
   const { name, description, color } = await req.json();
   if (!name) return NextResponse.json({ error: "Name required" }, { status: 400 });
 

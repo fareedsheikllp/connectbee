@@ -46,7 +46,13 @@ export async function POST(req) {
     where: { workspaceId_email: { workspaceId, email } },
   });
   if (existing) return NextResponse.json({ error: "Email already in use" }, { status: 409 });
-
+  // Check agent limit
+  const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } });
+  const planConfig = await prisma.planConfig.findUnique({ where: { planKey: workspace?.plan?.toLowerCase() || "trial" } });
+  const currentMembers = await prisma.workspaceMember.count({ where: { workspaceId, isActive: true } });
+  if (planConfig && currentMembers >= planConfig.agents) {
+    return NextResponse.json({ error: `Your plan allows a maximum of ${planConfig.agents} agents. Upgrade to add more.` }, { status: 403 });
+  }
   const hashed = await bcrypt.hash(password, 10);
 
   const member = await prisma.workspaceMember.create({

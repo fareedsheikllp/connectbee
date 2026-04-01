@@ -112,7 +112,7 @@ export default function ContactPage() {
             {/* Response time */}
             <div className="mt-8 flex items-center gap-2 text-xs text-gray-400">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
-              We typically respond within 4 business hours
+              We typically respond within 1 business day
             </div>
           </div>
 
@@ -127,7 +127,7 @@ export default function ContactPage() {
                 </div>
                 <h2 className="serif text-3xl text-gray-900 mb-3">Message sent!</h2>
                 <p className="text-gray-500 text-sm leading-relaxed max-w-xs">
-                  Thanks for reaching out. We'll get back to you within 4 business hours.
+                  Thanks for reaching out. We'll get back to you within 1 business day.
                 </p>
                 <button
                   onClick={() => { setStatus(null); setForm({ name: "", email: "", company: "", subject: "", message: "" }); }}

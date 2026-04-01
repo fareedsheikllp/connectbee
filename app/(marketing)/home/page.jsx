@@ -7,11 +7,10 @@ const FEATURES = [
   { emoji: "📣", title: "Broadcast Campaigns", desc: "Send promotional messages to unlimited contacts with one click. Schedule, segment, and track delivery in real time." },
   { emoji: "⚡", title: "AI Chatbot Builder", desc: "Build no-code conversation flows. Your chatbot qualifies leads, answers FAQs, and books appointments 24/7." },
   { emoji: "💬", title: "Multi-Agent Inbox", desc: "Your whole team in one inbox. Assign conversations, collaborate with notes, and resolve faster together." },
-  { emoji: "📦", title: "WhatsApp Catalog", desc: "Showcase products inside WhatsApp. Customers browse, add to cart, and buy without leaving the chat." },
-  { emoji: "🗓️", title: "Appointment Booking", desc: "Let customers book slots directly in WhatsApp. Auto-reminders slash no-shows by up to 60%." },
-  { emoji: "🔗", title: "Smart Notifications", desc: "Trigger order updates, payment alerts, and shipping notifications automatically." },
+  { emoji: "📦", title: "WhatsApp Catalog", desc: "Showcase products inside WhatsApp. Customers browse, add to cart, and buy with no hassle" },
+  { emoji: "🏷️", title: "Contact Segments", desc: "Tag and group contacts by behavior, location, or custom fields. Target the right people every time you broadcast." },
+  { emoji: "⚙️", title: "Workspace Management", desc: "Invite agents, create departments, set roles and permissions. Built for teams of any size." },
 ];
-
 const STATS = [
   { value: "98%", label: "Message open rate" },
   { value: "3x",  label: "Average revenue lift" },
@@ -26,12 +25,12 @@ const PLANS = [
 ];
 
 const TESTIMONIALS = [
-  { name: "Sarah Chen",     role: "Founder, MapleTech",        avatar: "SC", text: "We went from 200 to 800 leads per month in 6 weeks. The AI chatbot handles 80% of inquiries without human intervention." },
-  { name: "Marco Visconti", role: "Head of Growth, NordicPay", avatar: "MV", text: "The broadcast feature alone paid for itself in the first campaign. 94% open rate on our Black Friday promotion." },
+  { name: "Imran Mohammed",     role: "Marketing Director, Taxqwik",        avatar: "SC", text: "We went from 200 to 800 leads per month in 6 weeks. The AI chatbot handles 80% of inquiries without human intervention." },
+  { name: "Barbara Jensen", role: "Head of Growth, Revuola", avatar: "MV", text: "The broadcast feature alone paid for itself in the first campaign. 94% open rate on our Black Friday promotion." },
   { name: "Priya Mehta",    role: "CEO, CloudEats",             avatar: "PM", text: "Multi-agent chat transformed our support. Response time dropped from 4 hours to under 3 minutes." },
 ];
 
-const INTEGRATIONS = ["HubSpot","Salesforce","Zoho CRM","Shopify","WooCommerce","Zapier","Stripe","Google Sheets","Freshdesk","Zendesk","ChatGPT","Notion","Pipedrive","Slack","Mailchimp","Klaviyo"];
+const INTEGRATIONS = ["HubSpot","Salesforce","Zoho CRM","Shopify","WooCommerce","Zapier","Stripe","Google Sheets","ChatGPT","Notion","Slack","Mailchimp","Klaviyo"];
 const NAV_LINKS = [{ label: "Features", href: "#features" }, { label: "Integrations", href: "#integrations" }, { label: "Pricing", href: "#pricing" }];
 
 export default function HomePage() {

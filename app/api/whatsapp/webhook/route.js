@@ -7,7 +7,8 @@ export async function POST(req) {
   try {
     const text = await req.text();
     const params = new URLSearchParams(text);
-    const from = params.get("From")?.replace("whatsapp:+", "").replace("whatsapp:", "");
+    const rawFrom = params.get("From")?.replace("whatsapp:+", "").replace("whatsapp:", "");
+    const from = rawFrom?.startsWith("+") ? rawFrom : `+${rawFrom}`;
     const body = params.get("Body")?.trim();
     const waMessageId = params.get("MessageSid");
 
@@ -66,7 +67,7 @@ export async function POST(req) {
     });
     if (!contact) {
       contact = await db.contact.create({
-        data: { workspaceId: ws.id, name: from, phone: from, email: "", notes: "" },
+        data: { workspaceId: ws.id, name: from.replace("+", ""), phone: from, email: "", notes: "" },
       });
     }
 

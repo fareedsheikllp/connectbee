@@ -284,7 +284,7 @@ export default function HomePage() {
             <p style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.12em", color: "#16a34a", textTransform: "uppercase", marginBottom: 14 }}>Simple Pricing</p>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2rem,4vw,2.9rem)", color: "#0d150d", lineHeight: 1.1 }}>Invest once, <em>grow forever</em></h2>
           </div>
-          <div className="plans-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 22, alignItems: "center" }}>
+          <div className="plans-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 22, alignItems: "center" }}>
             {PLANS.map(({ name, price, period, desc, features, highlight }) => (
               <div key={name} className={highlight ? "" : "plan-card"} style={highlight ? { background: "#0d150d", border: "none", borderRadius: 22, padding: "36px", transform: "scale(1.04)", boxShadow: "0 24px 64px rgba(13,21,13,0.22)" } : {}}>
                 {highlight && <div style={{ display: "inline-block", background: "#22c55e", color: "#0d150d", fontSize: "0.68rem", fontWeight: 800, letterSpacing: "0.08em", padding: "4px 14px", borderRadius: 50, marginBottom: 18, textTransform: "uppercase" }}>Most Popular</div>}

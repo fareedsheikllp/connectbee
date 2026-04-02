@@ -19,18 +19,19 @@ const STATS = [
 ];
 
 const PLANS = [
-  { name: "Starter", price: 99.99, period: "mo", desc: "For solo operators", features: ["1,000 conversations/mo","3 chatbot flows","2 agents","Basic analytics","Email support"], highlight: false },
-  { name: "Growth",  price: 149.99, period: "mo", desc: "For scaling teams",  features: ["10,000 conversations/mo","Unlimited flows","10 agents","Advanced analytics","CRM integrations","Priority support"], highlight: true },
-  { name: "Enterprise", price: "Custom", period: "", desc: "For large organizations", features: ["Unlimited conversations","Unlimited agents","Custom integrations","SLA guarantee","Dedicated CSM","On-premise option"], highlight: false },
+  {name: "Free Trial", price: 0, period: "mo", desc: "Experience all features for free. No credit card required.", features: ["Basic feature access","250 conversations/mo","0 agent seat", "0 Chatbots","0 Channels","Community support"], highlight: false },
+  { name: "Starter", price: 99.99, period: "mo", desc: "For solo operators", features: ["1,000 conversations/mo","3 chatbot flows","2 agents","2 channels","Basic analytics","Email support"], highlight: false },
+  { name: "Growth",  price: 149.99, period: "mo", desc: "For scaling teams",  features: ["10,000 conversations/mo","Unlimited flows","10 agents","10 Agents", "5 channels","Advanced analytics","CRM integrations","Priority support"], highlight: true },
+  { name: "Enterprise", price: "Custom", period: "", desc: "For large organizations", features: ["Unlimited conversations","Unlimited agents","Unlimited channels","Custom integrations","SLA guarantee","Dedicated CSM","On-premise option"], highlight: false },
 ];
 
 const TESTIMONIALS = [
-  { name: "Imran Mohammed",     role: "Marketing Director, Taxqwik",        avatar: "SC", text: "We went from 200 to 800 leads per month in 6 weeks. The AI chatbot handles 80% of inquiries without human intervention." },
+  { name: "Fareed Sheik",     role: "CEO, Taxqwik",        avatar: "SC", text: "We went from 200 to 800 leads per month in 6 weeks. The AI chatbot handles 80% of inquiries without human intervention." },
   { name: "Barbara Jensen", role: "Head of Growth, Revuola", avatar: "MV", text: "The broadcast feature alone paid for itself in the first campaign. 94% open rate on our Black Friday promotion." },
-  { name: "Priya Mehta",    role: "CEO, CloudEats",             avatar: "PM", text: "Multi-agent chat transformed our support. Response time dropped from 4 hours to under 3 minutes." },
+  { name: "Imran Mohammed",    role: "Support Manager, CloudEats", avatar: "PM", text: "Multi-agent chat transformed our support. Response time dropped from 4 hours to under 3 minutes." },
 ];
 
-const INTEGRATIONS = ["HubSpot","Salesforce","Zoho CRM","Shopify","WooCommerce","Zapier","Stripe","Google Sheets","ChatGPT","Notion","Slack","Mailchimp","Klaviyo"];
+const INTEGRATIONS = ["ChatGPT","Salesforce","Zoho CRM","Shopify","WooCommerce","Zapier","Stripe","Google Sheets","HubSpot","Notion","Slack","Mailchimp","Klaviyo"];
 const NAV_LINKS = [{ label: "Features", href: "#features" }, { label: "Integrations", href: "#integrations" }, { label: "Pricing", href: "#pricing" }];
 
 export default function HomePage() {

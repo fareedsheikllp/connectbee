@@ -311,7 +311,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
       {/* TESTIMONIALS */}
       <section style={{ padding: "96px 24px", background: "white" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>

@@ -70,6 +70,7 @@ export default function AdminLayout({ children }) {
     );
   }
 
+
   const adminName = session.user.name || session.user.email.split("@")[0];
   const adminInitial = adminName[0].toUpperCase();
 

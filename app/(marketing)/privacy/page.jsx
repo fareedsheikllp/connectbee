@@ -125,7 +125,7 @@ export default function PrivacyPage() {
             </div>
           ))}
         </div>
-
+        
         {/* Contact CTA */}
         <div className="mt-16 rounded-2xl bg-gray-900 p-10 text-center">
           <p className="text-white font-bold text-lg mb-2">Privacy questions?</p>

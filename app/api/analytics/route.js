@@ -126,7 +126,7 @@ export async function GET(req) {
     const bStatusMap = {};
     broadcasts.forEach(b => { bStatusMap[b.status] = (bStatusMap[b.status] || 0) + 1; });
 
-    // ── Conversations breakdown ────────────────────────────────────
+    // ── Conversations breakdown ──
     const conversations = await db.conversation.findMany({
       where,
       select: { status: true, chatbotId: true },
@@ -138,7 +138,7 @@ export async function GET(req) {
     const botConversations  = conversations.filter(c => c.chatbotId).length;
     const openConversations = conversations.filter(c => c.status === "OPEN").length;
 
-    // ── Message direction breakdown ────────────────────────────────
+    // ── Message direction breakdown ──
     const messages = await db.message.findMany({
       where: { conversation: where },
       select: { direction: true, createdAt: true },
@@ -147,7 +147,7 @@ export async function GET(req) {
     const inbound  = messages.filter(m => m.direction === "INBOUND").length;
     const outbound = messages.filter(m => m.direction === "OUTBOUND").length;
 
-    // ── Templates breakdown ────────────────────────────────────────
+    // ── Templates breakdown ──
     const templates = await db.template.findMany({
       where,
       select: { metaStatus: true, category: true },
@@ -161,7 +161,7 @@ export async function GET(req) {
     const tCatMap = {};
     templates.forEach(t => { tCatMap[t.category] = (tCatMap[t.category] || 0) + 1; });
 
-    // ── Time series ────────────────────────────────────────────────
+    // ── Time series ──
     function makeBuckets() {
       const b = {};
       for (let i = days - 1; i >= 0; i--) {

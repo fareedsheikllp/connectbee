@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+
 export async function GET(req, context) {
   try {
     const session = await auth();
@@ -8,8 +9,15 @@ export async function GET(req, context) {
 
     const { id } = await context.params;
 
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const ws = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = ws?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+
     const group = await db.contactGroup.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
+      where: { id, workspaceId },
       include: { members: { include: { contact: true } } },
     });
 
@@ -21,6 +29,7 @@ export async function GET(req, context) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
 export async function PATCH(req, context) {
   try {
     const session = await auth();
@@ -29,18 +38,14 @@ export async function PATCH(req, context) {
     const { id } = await context.params;
     const data = await req.json();
 
-    const group = await db.contactGroup.findFirst({
-      where: {
-        id,
-        workspace: {
-          OR: [
-            { userId: session.user.id },
-            { members: { some: { userId: session.user.id } } },
-          ],
-        },
-      },
-      T
-    });
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const ws = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = ws?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+
+    const group = await db.contactGroup.findFirst({ where: { id, workspaceId } });
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const updated = await db.contactGroup.update({
@@ -51,15 +56,6 @@ export async function PATCH(req, context) {
       },
     });
 
-    // If memberIds are passed, sync the members
-    if (Array.isArray(data.memberIds)) {
-      await db.contactGroupMember.deleteMany({ where: { groupId: id } });
-      if (data.memberIds.length > 0) {
-        await db.contactGroupMember.createMany({
-          data: data.memberIds.map((contactId) => ({ groupId: id, contactId })),
-        });
-      }
-    }
     const incomingIds = data.contactIds ?? data.memberIds;
     if (Array.isArray(incomingIds)) {
       await db.contactGroupMember.deleteMany({ where: { groupId: id } });
@@ -70,6 +66,7 @@ export async function PATCH(req, context) {
         });
       }
     }
+
     const result = await db.contactGroup.findFirst({
       where: { id },
       include: { members: { include: { contact: true } } },
@@ -89,9 +86,14 @@ export async function DELETE(req, context) {
 
     const { id } = await context.params;
 
-    const group = await db.contactGroup.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
-    });
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const ws = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = ws?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+
+    const group = await db.contactGroup.findFirst({ where: { id, workspaceId } });
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await db.contactGroup.delete({ where: { id } });

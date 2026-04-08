@@ -11,7 +11,15 @@ export async function PATCH(req, context) {
     const data = await req.json();
 
     const item = await db.catalogItem.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
+    where: {
+      id,
+      workspace: {
+        OR: [
+          { userId: session.user.id },
+          { members: { some: { userId: session.user.id } } },
+        ],
+      },
+    },
     });
     if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -44,7 +52,15 @@ export async function DELETE(req, context) {
     const { id } = await context.params;
 
     const item = await db.catalogItem.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
+    where: {
+      id,
+      workspace: {
+        OR: [
+          { userId: session.user.id },
+          { members: { some: { userId: session.user.id } } },
+        ],
+      },
+    },
     });
     if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

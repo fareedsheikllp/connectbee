@@ -24,6 +24,7 @@ export async function POST(req) {
         OR: [
           { twilioPhoneNumber: toNumber },
           { twilioPhoneNumber: `+${toNumber}` },
+          { twilioPhoneNumber: { contains: toNumber.replace("+", "") } },
         ]
       } : undefined,
       select: {
@@ -33,6 +34,7 @@ export async function POST(req) {
         twilioPhoneNumber: true,
       }
     });
+    console.log("Webhook — To:", toNumber, "From:", from, "Body:", body, "Workspace found:", !!ws);
     if (!ws) return new Response("", { status: 200 });
     const wsCreds = ws.twilioAccountSid ? {
       accountSid:  ws.twilioAccountSid,

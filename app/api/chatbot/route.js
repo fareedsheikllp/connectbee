@@ -6,7 +6,14 @@ export async function GET() {
   try {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
+    const workspace = await db.workspace.findFirst({
+      where: {
+        OR: [
+          { userId: session.user.id },
+          { members: { some: { userId: session.user.id } } },
+        ],
+      },
+    });
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
     const chatbots = await db.chatbot.findMany({ where: { workspaceId: workspace.id }, orderBy: { createdAt: "desc" } });
     return NextResponse.json({ chatbots });
@@ -18,7 +25,15 @@ export async function POST(req) {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
+    const workspace = await db.workspace.findFirst({
+      where: {
+        OR: [
+          { userId: session.user.id },
+          { members: { some: { userId: session.user.id } } },
+        ],
+      },
+    });
+
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
     const user = await db.user.findUnique({ where: { id: session.user.id } });

@@ -8,7 +8,16 @@ export async function GET(req, context) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await context.params;
     const chatbot = await db.chatbot.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
+      where: {
+  id,
+  workspace: {
+    OR: [
+      { userId: session.user.id },
+      { members: { some: { userId: session.user.id } } },
+    ],
+  },
+},
+
     });
     if (!chatbot) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ chatbot });
@@ -24,7 +33,16 @@ export async function PATCH(req, context) {
     const { id } = await context.params;
     const data = await req.json();
     const chatbot = await db.chatbot.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
+      where: {
+  id,
+  workspace: {
+    OR: [
+      { userId: session.user.id },
+      { members: { some: { userId: session.user.id } } },
+    ],
+  },
+},
+
     });
     if (!chatbot) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -50,7 +68,16 @@ export async function DELETE(req, context) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await context.params;
     const chatbot = await db.chatbot.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
+      where: {
+  id,
+  workspace: {
+    OR: [
+      { userId: session.user.id },
+      { members: { some: { userId: session.user.id } } },
+    ],
+  },
+},
+
     });
     if (!chatbot) return NextResponse.json({ error: "Not found" }, { status: 404 });
     await db.chatbot.delete({ where: { id } });

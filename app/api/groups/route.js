@@ -8,7 +8,14 @@ export async function GET() {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const groups = await db.contactGroup.findMany({
-      where: { workspace: { userId: session.user.id } },
+      where: {
+        workspace: {
+          OR: [
+            { userId: session.user.id },
+            { members: { some: { userId: session.user.id } } },
+          ],
+        },
+      },
       include: {
         members: {
           include: { contact: true },
@@ -30,8 +37,14 @@ export async function POST(req) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const workspace = await db.workspace.findFirst({
-      where: { userId: session.user.id },
+      where: {
+        OR: [
+          { userId: session.user.id },
+          { members: { some: { userId: session.user.id } } },
+        ],
+      },
     });
+
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
     const { name, description, contactIds } = await req.json();

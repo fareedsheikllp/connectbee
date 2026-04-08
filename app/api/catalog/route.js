@@ -8,7 +8,14 @@ export async function GET() {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const items = await db.catalogItem.findMany({
-      where: { workspace: { userId: session.user.id } },
+      where: {
+        workspace: {
+          OR: [
+            { userId: session.user.id },
+            { members: { some: { userId: session.user.id } } },
+          ],
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -23,10 +30,15 @@ export async function POST(req) {
   try {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
     const workspace = await db.workspace.findFirst({
-      where: { userId: session.user.id },
+      where: {
+        OR: [
+          { userId: session.user.id },
+          { members: { some: { userId: session.user.id } } },
+        ],
+      },
     });
+
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
     const body = await req.json();

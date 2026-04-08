@@ -30,7 +30,16 @@ export async function PATCH(req, context) {
     const data = await req.json();
 
     const group = await db.contactGroup.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
+      where: {
+        id,
+        workspace: {
+          OR: [
+            { userId: session.user.id },
+            { members: { some: { userId: session.user.id } } },
+          ],
+        },
+      },
+      T
     });
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

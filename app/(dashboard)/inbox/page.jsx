@@ -858,7 +858,10 @@ async function updateConv(patch, msg) {
     if (statusFilter !== "ALL" && c.status !== statusFilter) return false;
     if (priorityFilter !== "ALL" && (c.priority || "NONE") !== priorityFilter) return false;
     if (labelFilter !== "ALL" && !getLabels(c.labels).includes(labelFilter)) return false;
-    if (channelFilter !== "ALL" && c.channelId !== channelFilter) return false;
+    if (channelFilter !== "ALL") {
+      const inChannel = c.conversationChannels?.some(cc => cc.channel.id === channelFilter) || c.channelId === channelFilter;
+      if (!inChannel) return false;
+    }
     return true;
   });
 
@@ -1097,23 +1100,28 @@ async function updateConv(patch, msg) {
                           <span className="text-[10px] text-slate-400">{timeAgo(conv.updatedAt)}</span>
                         </div>
                       </div>
-                      {(conv.assignedMember || conv.conversationChannels?.length > 0) && (
-                        <div className="flex items-center gap-1.5 mb-1 mt-0.5 flex-wrap">
-                          {conv.assignedMember && (
-                            <span className="text-[10px] text-slate-400">→ {conv.assignedMember.name}</span>
-                          )}
-                          {conv.conversationChannels?.slice(0, 2).map(cc => (
-                            <span key={cc.channel.id} className="flex items-center gap-0.5 text-[10px] font-semibold"
-                              style={{ color: cc.channel.color }}>
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cc.channel.color }} />
-                              {cc.channel.name}
-                            </span>
-                          ))}
-                          {conv.conversationChannels?.length > 2 && (
-                            <span className="text-[10px] text-slate-400">+{conv.conversationChannels.length - 2}</span>
-                          )}
-                        </div>
-                      )}
+                          {(() => {
+                            const chans = conv.conversationChannels?.length > 0
+                              ? conv.conversationChannels.map(cc => cc.channel)
+                              : conv.channel ? [conv.channel] : [];
+                            return (conv.assignedMember || chans.length > 0) ? (
+                              <div className="flex items-center gap-1.5 mb-1 mt-0.5 flex-wrap">
+                                {conv.assignedMember && (
+                                  <span className="text-[10px] text-slate-400">→ {conv.assignedMember.name}</span>
+                                )}
+                                {chans.slice(0, 2).map(ch => (
+                                  <span key={ch.id} className="flex items-center gap-0.5 text-[10px] font-semibold"
+                                    style={{ color: ch.color }}>
+                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ch.color }} />
+                                    {ch.name}
+                                  </span>
+                                ))}
+                                {chans.length > 2 && (
+                                  <span className="text-[10px] text-slate-400">+{chans.length - 2}</span>
+                                )}
+                              </div>
+                            ) : null;
+                          })()}
                       <p className={`text-xs truncate mb-1.5 ${hasBadge ? "text-slate-700 font-medium" : "text-slate-400"}`}>
                         {conv.lastMessage || "No messages yet"}
                       </p>
@@ -1253,8 +1261,9 @@ async function updateConv(patch, msg) {
                                   <option value="">Unassigned</option>
                                   {members
                                     .filter(m => {
-                                      const ch = assignChannel || selected.channelId;
-                                      return !ch || m.channels?.some(cm => cm.channelId === ch);
+                                      const assignedChannelIds = selected.conversationChannels?.map(cc => cc.channel.id) || [];
+                                      if (assignedChannelIds.length === 0) return true;
+                                      return m.channels?.some(cm => assignedChannelIds.includes(cm.channelId));
                                     })
                                     .map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
                                 </select>

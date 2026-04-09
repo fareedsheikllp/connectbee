@@ -442,6 +442,19 @@ function GroupForm({ initial = {}, contacts = [], onSubmit, loading }) {
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-300 pointer-events-none" />
           <input className={`${inputCls} pl-8`} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search contacts..." />
         </div>
+        {contacts.length > 0 && (
+          <div
+            onClick={() => setSelected(selected.length === visible.length ? [] : visible.map(c => c.id))}
+            className="flex items-center gap-3 px-4 py-2 cursor-pointer bg-surface-50 border border-surface-200 rounded-xl mb-1 hover:bg-brand-50 transition-colors"
+          >
+            <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${selected.length === visible.length && visible.length > 0 ? "bg-brand-500 border-brand-500" : "border-surface-300"}`}>
+              {selected.length === visible.length && visible.length > 0 && <Check size={9} className="text-white" strokeWidth={3} />}
+            </div>
+            <span className="text-xs font-medium text-ink-600">
+              {selected.length === visible.length && visible.length > 0 ? "Deselect all" : `Select all (${visible.length})`}
+            </span>
+          </div>
+        )}
         <div className="border border-surface-200 rounded-xl overflow-hidden max-h-44 overflow-y-auto divide-y divide-surface-100">
           {contacts.length === 0 ? (
             <p className="text-xs text-ink-400 text-center py-8">No contacts yet — add some first</p>

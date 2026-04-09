@@ -657,10 +657,20 @@ export default function InboxPage() {
   const [members, setMembers] = useState([]);
   const [channelFilter, setChannelFilter] = useState("ALL");
   const [showAssign, setShowAssign] = useState(false);
+  const assignRef = useRef(null);
+  useEffect(() => {
+    function handleClick(e) {
+      if (assignRef.current && !assignRef.current.contains(e.target)) {
+        setShowAssign(false);
+      }
+    }
+    if (showAssign) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showAssign]);
   const [assignChannel, setAssignChannel] = useState("");
   const [selectedConvs, setSelectedConvs] = useState(new Set());
   const [bulkChannel, setBulkChannel] = useState("");
-  const [bulkAgent, setBulkAgent] = useState("");
+  const [bulkAgents, setBulkAgents] = useState({});
   const [bulkAssigning, setBulkAssigning] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const isResizing = useRef(false);
@@ -840,15 +850,24 @@ async function updateConv(patch, msg) {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...(bulkChannel === "UNASSIGN" ? { channelId: null } : bulkChannel ? { channelId: bulkChannel } : {}),
-            ...(bulkAgent === "UNASSIGN" ? { assignedTo: null } : bulkAgent ? { assignedTo: bulkAgent } : {}),
+            ...(bulkChannel === "UNASSIGN" ? { channelIds: [], channelId: null } : Array.isArray(bulkChannel) && bulkChannel.length > 0 ? { addChannelIds: bulkChannel } : {}),
+            // per-channel agents handled separately
           }),
         })
       ));
+      if (Object.keys(bulkAgents).length > 0) {
+        await Promise.all([...selectedConvs].map(convId =>
+          Promise.all(Object.entries(bulkAgents).map(([channelId, memberId]) =>
+            channelId === "__all__"
+              ? fetch(`/api/inbox/${convId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ assignedTo: memberId || null }) })
+              : fetch(`/api/inbox/${convId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelAgents: { [channelId]: memberId || null } }) })
+          ))
+        ));
+      }
       toast.success(`Assigned ${selectedConvs.size} conversations`);
       setSelectedConvs(new Set());
       setBulkChannel("");
-      setBulkAgent("");
+      setBulkAgents({});
       fetchConversations(true);
     } catch { toast.error("Failed to assign"); }
     finally { setBulkAssigning(false); }
@@ -908,76 +927,116 @@ async function updateConv(patch, msg) {
           </button>
         </div>
 
-        {/* Status tabs */}
-        <div className="px-3 pb-2 flex items-center gap-1">
-          {["ALL", "OPEN", "BOT", "RESOLVED"].map(s => {
-            const active = statusFilter === s;
-            const sc = STATUS_CONFIG[s];
-            return (
-              <button key={s} onClick={() => setStatusFilter(s)}
-                className={`flex items-center gap-1 h-7 px-2.5 rounded-lg text-[11px] font-semibold transition-all flex-1 justify-center border ${
-                  active ? "bg-brand-500 text-white border-brand-500" : "text-slate-500 border-slate-200 hover:bg-slate-50"
-                }`}
-              >
-                {sc.dot && !active && <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />}
-                {sc.label}
-                {counts[s] > 0 && (
-                  <span className={`text-[10px] font-bold ml-0.5 ${active ? "text-brand-200" : "text-slate-400"}`}>
-                    {counts[s] || 0}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        {/* Channel filter — only show if channels exist */}
-        {channels.length > 0 && (
-          <div className="px-3 pb-2 flex items-center gap-1 overflow-x-auto">
-            <button
-              onClick={() => setChannelFilter("ALL")}
-              className={`flex-shrink-0 h-6 px-2.5 rounded-lg text-[11px] font-semibold border transition-all ${channelFilter === "ALL" ? "bg-brand-500 text-white border-brand-500" : "text-slate-500 border-slate-200 hover:bg-slate-50"}`}
-            >
-              All Channels
-            </button>
-            {channels.map(ch => (
-              <button key={ch.id}
-                onClick={() => setChannelFilter(channelFilter === ch.id ? "ALL" : ch.id)}
-                className={`flex-shrink-0 flex items-center gap-1 h-6 px-2.5 rounded-lg text-[11px] font-semibold border transition-all ${channelFilter === ch.id ? "bg-brand-500 text-white border-brand-500" : "text-slate-500 border-slate-200 hover:bg-slate-50"}`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: ch.color }} />
-                {ch.name}
-              </button>
-            ))}
+        {/* Status + Channel filters combined */}
+        <div className="px-3 pb-2 space-y-1.5">
+          <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+            {["ALL", "OPEN", "BOT", "RESOLVED"].map(s => {
+              const active = statusFilter === s;
+              const sc = STATUS_CONFIG[s];
+              return (
+                <button key={s} onClick={() => setStatusFilter(s)}
+                  className={`flex items-center gap-1 h-7 px-2 rounded-lg text-[11px] font-semibold transition-all flex-1 justify-center ${
+                    active ? "bg-white text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  {sc.dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${sc.dot}`} />}
+                  {sc.label}
+                  {counts[s] > 0 && (
+                    <span className={`text-[10px] font-bold ${active ? "text-brand-500" : "text-slate-400"}`}>
+                      {counts[s]}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        )}
+          {channels.length > 0 && (
+            <div className="relative">
+              <select
+                value={channelFilter}
+                onChange={e => setChannelFilter(e.target.value)}
+                className="w-full h-7 text-[11px] font-semibold border border-slate-200 rounded-lg px-2 pr-6 text-slate-600 bg-white outline-none appearance-none cursor-pointer hover:border-slate-300 transition-all"
+              >
+                <option value="ALL">All Channels</option>
+                {channels.map(ch => (
+                  <option key={ch.id} value={ch.id}>{ch.name}</option>
+                ))}
+              </select>
+              <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            </div>
+          )}
+        </div>
         {/* Bulk assign bar */}
         {canAssign && selectedConvs.size > 0 && (
           <div className="mx-3 mb-2 p-2.5 bg-brand-50 border border-brand-200 rounded-xl space-y-2">
             <p className="text-[11px] font-bold text-brand-700">{selectedConvs.size} selected</p>
-            <select
-              value={bulkChannel}
-              onChange={e => setBulkChannel(e.target.value)}
-              className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
-            >
-              <option value=""> No change</option>
-              <option value="UNASSIGN"> Remove channel</option>
-              {channels.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
-            </select>
-            <select
-              value={bulkAgent}
-              onChange={e => setBulkAgent(e.target.value)}
-              className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
-            >
-              <option value=""> Assign </option>
-              <option value="UNASSIGN"> Unassigned </option>
-              {members
-                .filter(m => !bulkChannel || m.channels?.some(cm => cm.channelId === bulkChannel))
-                .map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
-            </select>
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-500 font-medium">Channels</p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bulkChannel === "UNASSIGN"}
+                    onChange={() => setBulkChannel(prev => prev === "UNASSIGN" ? [] : "UNASSIGN")}
+                    className="w-3 h-3 accent-red-500"
+                  />
+                  <span className="text-xs text-red-500 font-medium">Remove all channels</span>
+                </label>
+                {channels.map(ch => (
+                <label key={ch.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bulkChannel.includes?.(ch.id) || bulkChannel === ch.id}
+                    onChange={() => {
+                      setBulkChannel(prev => {
+                        const arr = Array.isArray(prev) ? prev : (prev ? [prev] : []);
+                        return arr.includes(ch.id) ? arr.filter(x => x !== ch.id) : [...arr, ch.id];
+                      });
+                    }}
+                    className="w-3 h-3 accent-brand-500"
+                  />
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ch.color }} />
+                  <span className="text-xs text-slate-700">{ch.name}</span>
+                </label>
+              ))}
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const selectedChannelIds = Array.isArray(bulkChannel) ? bulkChannel : (bulkChannel && bulkChannel !== "UNASSIGN" ? [bulkChannel] : []);
+                if (selectedChannelIds.length === 0) return (
+                <select value={bulkAgents["__all__"] || ""} onChange={e => setBulkAgents({ "__all__": e.target.value })}
+                  className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700">
+                  <option value="">Unassigned</option>
+                  {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+                </select>
+                );
+                return channels
+                  .filter(ch => selectedChannelIds.includes(ch.id))
+                  .map(ch => {
+                    const chMembers = members.filter(m => m.channels?.some(cm => cm.channelId === ch.id));
+                    return (
+                      <div key={ch.id}>
+                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                          style={{ color: ch.color }}>
+                          <span className="inline-block w-1.5 h-1.5 rounded-full mr-1" style={{ backgroundColor: ch.color }} />
+                          {ch.name}
+                        </p>
+                        <select
+                          value={bulkAgents[ch.id] || ""}
+                          onChange={e => setBulkAgents(prev => ({ ...prev, [ch.id]: e.target.value }))}
+                          className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+                        >
+                          <option value="">Unassigned</option>
+                          {chMembers.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+                        </select>
+                      </div>
+                    );
+                  });
+              })()}
+            </div>
             <div className="flex gap-1.5">
               <button
                 onClick={bulkAssign}
-                disabled={bulkAssigning || (!bulkChannel && !bulkAgent)}
+                disabled={bulkAssigning || (!bulkChannel && Object.keys(bulkAgents).length === 0)}
                 className="flex-1 h-7 bg-brand-500 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-1"
               >
                 {bulkAssigning ? <Loader2 size={11} className="animate-spin" /> : <Users size={11} />}
@@ -1087,16 +1146,6 @@ async function updateConv(patch, msg) {
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                        {conv.priority && conv.priority !== "NONE" && (
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
-                              conv.priority === "URGENT" ? "bg-red-100 text-red-600" :
-                              conv.priority === "HIGH"   ? "bg-orange-100 text-orange-600" :
-                              conv.priority === "MEDIUM" ? "bg-amber-100 text-amber-600" :
-                              "bg-sky-100 text-sky-600"
-                            }`}>
-                              {pc.label.toUpperCase()}
-                            </span>
-                          )}
                           <span className="text-[10px] text-slate-400">{timeAgo(conv.updatedAt)}</span>
                         </div>
                       </div>
@@ -1106,41 +1155,48 @@ async function updateConv(patch, msg) {
                               : conv.channel ? [conv.channel] : [];
                             return (conv.assignedMember || chans.length > 0) ? (
                               <div className="flex items-center gap-1.5 mb-1 mt-0.5 flex-wrap">
-                                {conv.conversationChannels?.some(cc => cc.assignedMember) ? (
-                                  conv.conversationChannels.filter(cc => cc.assignedMember).map(cc => (
-                                    <span key={cc.channel.id} className="text-[10px] text-slate-400">
-                                      → {cc.assignedMember.name}
+                                {chans.slice(0, 2).map(ch => {
+                                  const chAssigned = conv.conversationChannels?.find(cc => cc.channel.id === ch.id)?.assignedMember;
+                                  return (
+                                    <span key={ch.id} className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border"
+                                      style={{ color: ch.color, borderColor: ch.color + "40", backgroundColor: ch.color + "12" }}>
+                                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: ch.color }} />
+                                      <span className="font-semibold">{ch.name}</span>
+                                      {chAssigned && <span className="text-slate-400 font-normal">· {chAssigned.name}</span>}
                                     </span>
-                                  ))
-                                ) : conv.assignedMember ? (
-                                  <span className="text-[10px] text-slate-400">→ {conv.assignedMember.name}</span>
-                                ) : null}
-                                {chans.slice(0, 2).map(ch => (
-                                  <span key={ch.id} className="flex items-center gap-0.5 text-[10px] font-semibold"
-                                    style={{ color: ch.color }}>
-                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ch.color }} />
-                                    {ch.name}
+                                  );
+                                })}
+                                {conv.assignedMember && !conv.conversationChannels?.some(cc => cc.assignedMember) && (
+                                  <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                                    {conv.assignedMember.name}
                                   </span>
-                                ))}
+                                )}
                                 {chans.length > 2 && (
                                   <span className="text-[10px] text-slate-400">+{chans.length - 2}</span>
                                 )}
                               </div>
                             ) : null;
                           })()}
-                      <p className={`text-xs truncate mb-1.5 ${hasBadge ? "text-slate-700 font-medium" : "text-slate-400"}`}>
+                      <p className={`text-xs truncate font-medium ${hasBadge ? "text-slate-800" : "text-slate-600"}`}>
                         {conv.lastMessage || "No messages yet"}
                       </p>
-                      {(convLabels.length > 0 || conv.dueAt) && (
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {convLabels.slice(0, 2).map(lbl => (
-                            <span key={lbl} className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${LABEL_CFG[lbl]?.pill || "bg-slate-100 text-slate-500"}`}>
-                              {lbl}
+                      {(conv.priority && conv.priority !== "NONE" || convLabels.length > 0 || conv.dueAt) && (
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          {conv.priority && conv.priority !== "NONE" && (
+                            <span className={`text-[9px] font-medium  px-1.5 py-0.5 rounded ${
+                              conv.priority === "URGENT" ? "bg-red-100 text-red-600" :
+                              conv.priority === "HIGH"   ? "bg-orange-100 text-orange-600" :
+                              conv.priority === "MEDIUM" ? "bg-amber-100 text-amber-600" :
+                              "bg-sky-100 text-sky-600"
+                            }`}>{pc.label}</span>
+                          )}
+                          {convLabels.length > 0 && (
+                            <span className="text-[10px] text-slate-400">
+                              {convLabels.slice(0, 1).map(lbl => lbl).join("")}{convLabels.length > 1 ? ` +${convLabels.length - 1}` : ""}
                             </span>
-                          ))}
-                          {convLabels.length > 2 && <span className="text-[10px] text-slate-400">+{convLabels.length - 2}</span>}
+                          )}
                           {conv.dueAt && (
-                            <span className={`flex items-center gap-0.5 text-[10px] font-semibold ml-auto ${overdue ? "text-red-500" : isDueSoon(conv.dueAt) ? "text-amber-500" : "text-slate-400"}`}>
+                            <span className={`flex items-center gap-0.5 text-[9px] font-semibold ml-auto ${overdue ? "text-red-500" : isDueSoon(conv.dueAt) ? "text-amber-500" : "text-slate-400"}`}>
                               {overdue ? <AlertCircle size={9} /> : <Clock size={9} />}
                               {formatDue(conv.dueAt)}
                             </span>
@@ -1212,7 +1268,7 @@ async function updateConv(patch, msg) {
                     />
                     {canAssign && (
                       <>
-                        <div className="relative">
+                        <div className="relative" ref={assignRef}>
                           <button
                             onClick={() => { setShowAssign(p => !p); setAssignChannel(""); }}
                             className={`flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border transition-all ${showAssign ? "bg-brand-500 text-white border-brand-500" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
@@ -1223,6 +1279,19 @@ async function updateConv(patch, msg) {
                           </button>
                           {showAssign && (
                             <div className="absolute right-0 top-10 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-3 space-y-3 w-64 max-h-96 overflow-y-auto">
+                                {selected.assignedMember && (
+                                <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100">
+                                  <span className="text-xs text-slate-500">
+                                    Assigned: <span className="font-semibold text-slate-700">{selected.assignedMember.name}</span>
+                                  </span>
+                                  <button
+                                    onClick={() => updateConv({ assignedTo: null }, "Unassigned")}
+                                    className="text-[10px] text-red-500 hover:text-red-600 font-semibold"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              )}
                               <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Channels</p>
                                 <div className="space-y-1">
@@ -1255,7 +1324,8 @@ async function updateConv(patch, msg) {
                                 const chMembers = members.filter(m =>
                                   m.channels?.some(cm => cm.channelId === cc.channel.id)
                                 );
-                                if (chMembers.length === 0) return null;
+                                // Still show the dropdown even if no members — show all members as fallback
+                                const dropdownMembers = chMembers.length > 0 ? chMembers : members;
                                 return (
                                   <div key={cc.channel.id}>
                                     <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5"
@@ -1273,7 +1343,7 @@ async function updateConv(patch, msg) {
                                       className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
                                     >
                                       <option value="">Unassigned</option>
-                                      {chMembers.map(m => (
+                                      {dropdownMembers.map(m => (
                                         <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
                                       ))}
                                     </select>

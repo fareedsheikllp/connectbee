@@ -22,7 +22,7 @@ export async function PATCH(req, context) {
     });
     if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const { status, priority, labels, dueAt, assignedTo, channelId, channelIds, channelAgents } = await req.json();
+    const { status, priority, labels, dueAt, assignedTo, channelId, channelIds, addChannelIds, channelAgents } = await req.json();
 
     // Agents can't change priority or assign
     if (role === "agent" && (priority !== undefined || assignedTo !== undefined || channelId !== undefined)) {
@@ -49,6 +49,20 @@ export async function PATCH(req, context) {
           skipDuplicates: true,
         });
       }
+      // Clear legacy channelId if removing all channels
+      if (channelIds.length === 0) {
+        await db.conversation.update({
+          where: { id },
+          data: { channelId: null },
+        });
+      }
+    }
+    // Add channels without removing existing ones
+    if (addChannelIds !== undefined && addChannelIds.length > 0) {
+      await db.conversationChannel.createMany({
+        data: addChannelIds.map(cid => ({ conversationId: id, channelId: cid })),
+        skipDuplicates: true,
+      });
     }
 
     // Handle per-channel agent assignment

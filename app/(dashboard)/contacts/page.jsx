@@ -493,6 +493,12 @@ function GroupCard({ group, onEdit, onDelete }) {
             <div className="min-w-0">
               <p className="font-semibold text-ink-800 truncate">{group.name}</p>
               {group.description && <p className="text-xs text-ink-400 truncate mt-0.5">{group.description}</p>}
+              {group.channel && (
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: group.channel.color }} />
+                  <span className="text-[11px] font-semibold" style={{ color: group.channel.color }}>{group.channel.name}</span>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">

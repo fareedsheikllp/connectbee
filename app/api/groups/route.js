@@ -16,9 +16,8 @@ export async function GET() {
     const groups = await db.contactGroup.findMany({
       where: { workspaceId },
       include: {
-        members: {
-          include: { contact: true },
-        },
+        members: { include: { contact: true } },
+        channel: { select: { id: true, name: true, color: true } },
       },
       orderBy: { createdAt: "desc" },
     });

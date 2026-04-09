@@ -94,10 +94,29 @@ export async function POST(req) {
           lastMessage: body,
         },
       });
-      await incrementConversationsUsed(ws.id);
-      // Notify owner + all supervisors of new conversation
+await incrementConversationsUsed(ws.id);
+
+// Auto-assign channels from contact's groups
 try {
-  const supervisors = await db.workspaceMember.findMany({
+  const contactGroups = await db.contactGroupMember.findMany({
+    where: { contactId: contact.id },
+    select: { group: { select: { channelId: true } } },
+  });
+  const channelIds = [...new Set(
+    contactGroups.map(cg => cg.group.channelId).filter(Boolean)
+  )];
+  if (channelIds.length > 0) {
+    await db.conversationChannel.createMany({
+      data: channelIds.map(channelId => ({ conversationId: conversation.id, channelId })),
+      skipDuplicates: true,
+    });
+  }
+} catch (e) {
+  console.error("Auto-assign channel error:", e.message);
+}
+
+// Notify owner + all supervisors of new conversation
+try {  const supervisors = await db.workspaceMember.findMany({
     where: { workspaceId: ws.id, role: "SUPERVISOR", isActive: true },
     select: { id: true },
   });

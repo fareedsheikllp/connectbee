@@ -222,12 +222,14 @@ model Channel {
   conversationChannels ConversationChannel[]
 }
 model ConversationChannel {
-  id             String       @id @default(cuid())
+  id             String          @id @default(cuid())
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   channelId      String
-  channel        Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  createdAt      DateTime     @default(now())
+  channel        Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  assignedTo     String?
+  assignedMember WorkspaceMember? @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
+  createdAt      DateTime        @default(now())
 
   @@unique([conversationId, channelId])
 }
@@ -242,7 +244,7 @@ model WorkspaceMember {
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
+  conversationChannels ConversationChannel[]
   channels      ChannelMember[]
   conversations Conversation[]
 

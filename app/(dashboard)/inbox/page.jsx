@@ -1106,9 +1106,15 @@ async function updateConv(patch, msg) {
                               : conv.channel ? [conv.channel] : [];
                             return (conv.assignedMember || chans.length > 0) ? (
                               <div className="flex items-center gap-1.5 mb-1 mt-0.5 flex-wrap">
-                                {conv.assignedMember && (
+                                {conv.conversationChannels?.some(cc => cc.assignedMember) ? (
+                                  conv.conversationChannels.filter(cc => cc.assignedMember).map(cc => (
+                                    <span key={cc.channel.id} className="text-[10px] text-slate-400">
+                                      → {cc.assignedMember.name}
+                                    </span>
+                                  ))
+                                ) : conv.assignedMember ? (
                                   <span className="text-[10px] text-slate-400">→ {conv.assignedMember.name}</span>
-                                )}
+                                ) : null}
                                 {chans.slice(0, 2).map(ch => (
                                   <span key={ch.id} className="flex items-center gap-0.5 text-[10px] font-semibold"
                                     style={{ color: ch.color }}>
@@ -1216,58 +1222,64 @@ async function updateConv(patch, msg) {
                             <ChevronDown size={10} />
                           </button>
                           {showAssign && (
-                            <div className="absolute right-0 top-10 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-3 space-y-3 w-56">
-                            <div>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Channels</p>
-                              <div className="space-y-1 max-h-32 overflow-y-auto">
-                                {channels.map(ch => {
-                                  const isAssigned = selected.conversationChannels?.some(cc => cc.channel.id === ch.id);
-                                  return (
-                                    <label key={ch.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-1 py-1 rounded">
-                                      <input
-                                        type="checkbox"
-                                        checked={!!isAssigned}
-                                        onChange={() => {
-                                          const currentIds = selected.conversationChannels?.map(cc => cc.channel.id) || [];
-                                          const newIds = isAssigned
-                                            ? currentIds.filter(cid => cid !== ch.id)
-                                            : [...currentIds, ch.id];
-                                          updateConv({ channelIds: newIds });
-                                        }}
-                                        className="w-3 h-3 accent-brand-500"
-                                      />
-                                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: ch.color }} />
-                                      <span className="text-xs text-slate-700">{ch.name}</span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            </div>
+                            <div className="absolute right-0 top-10 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-3 space-y-3 w-64 max-h-96 overflow-y-auto">
                               <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Agent</p>
-                                <select
-                                  value={selected.assignedTo || ""}
-                                    onChange={e => {
-                                      const val = e.target.value;
-                                      updateConv(
-                                        { assignedTo: val || null },
-                                        val ? "Assigned!" : "Unassigned"
-                                      );
-                                      setShowAssign(false);
-                                      setAssignChannel("");
-                                    }}
-                                  className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
-                                >
-                                  <option value="">Unassigned</option>
-                                  {members
-                                    .filter(m => {
-                                      const assignedChannelIds = selected.conversationChannels?.map(cc => cc.channel.id) || [];
-                                      if (assignedChannelIds.length === 0) return true;
-                                      return m.channels?.some(cm => assignedChannelIds.includes(cm.channelId));
-                                    })
-                                    .map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
-                                </select>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Channels</p>
+                                <div className="space-y-1">
+                                  {channels.map(ch => {
+                                    const isAssigned = selected.conversationChannels?.some(cc => cc.channel.id === ch.id) || selected.channelId === ch.id;
+                                    return (
+                                      <label key={ch.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-1 py-1 rounded">
+                                        <input
+                                          type="checkbox"
+                                          checked={!!isAssigned}
+                                          onChange={() => {
+                                            const currentIds = selected.conversationChannels?.map(cc => cc.channel.id) || [];
+                                            const newIds = isAssigned
+                                              ? currentIds.filter(cid => cid !== ch.id)
+                                              : [...currentIds, ch.id];
+                                            updateConv({ channelIds: newIds });
+                                          }}
+                                          className="w-3 h-3 accent-brand-500"
+                                        />
+                                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: ch.color }} />
+                                        <span className="text-xs text-slate-700">{ch.name}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
                               </div>
+
+                              {/* Per-channel agent assignment */}
+                              {selected.conversationChannels?.map(cc => {
+                                const chMembers = members.filter(m =>
+                                  m.channels?.some(cm => cm.channelId === cc.channel.id)
+                                );
+                                if (chMembers.length === 0) return null;
+                                return (
+                                  <div key={cc.channel.id}>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5"
+                                      style={{ color: cc.channel.color }}>
+                                      <span className="inline-block w-1.5 h-1.5 rounded-full mr-1" style={{ backgroundColor: cc.channel.color }} />
+                                      {cc.channel.name}
+                                    </p>
+                                    <select
+                                      value={cc.assignedMember?.id || ""}
+                                      onChange={e => {
+                                        updateConv({
+                                          channelAgents: { [cc.channel.id]: e.target.value || null }
+                                        }, e.target.value ? "Assigned!" : "Unassigned");
+                                      }}
+                                      className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+                                    >
+                                      <option value="">Unassigned</option>
+                                      {chMembers.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>

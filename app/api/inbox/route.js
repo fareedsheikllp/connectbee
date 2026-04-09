@@ -21,9 +21,11 @@ export async function GET() {
 
     let where = { workspaceId };
 
-    if (role === "agent") {
-      // Agents only see conversations assigned to them
-      where.assignedTo = session.user.memberId;
+      if (role === "agent") {
+        where.OR = [
+          { assignedTo: session.user.memberId },
+          { conversationChannels: { some: { assignedTo: session.user.memberId } } },
+        ];
       } else if (role === "supervisor") {
         const memberChannels = await db.channelMember.findMany({
           where: { memberId: session.user.memberId },
@@ -55,7 +57,12 @@ export async function GET() {
             groupMembers: { select: { group: { select: { id: true, name: true, channel: { select: { id: true, name: true, color: true } } } } } },
           }
         },
-        conversationChannels: { include: { channel: { select: { id: true, name: true, color: true } } } },
+        conversationChannels: {
+          include: {
+            channel: { select: { id: true, name: true, color: true } },
+            assignedMember: { select: { id: true, name: true, role: true } },
+          }
+        },
         channel: { select: { id: true, name: true, color: true } },
         assignedMember: { select: { id: true, name: true } },
       },

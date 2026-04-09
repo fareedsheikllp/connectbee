@@ -22,18 +22,41 @@ export async function PATCH(req, context) {
     });
     if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const { status, priority, labels, dueAt, assignedTo, channelId, channelIds } = await req.json();
+    const { status, priority, labels, dueAt, assignedTo, channelId, channelIds, channelAgents } = await req.json();
 
     // Agents can't change priority or assign
     if (role === "agent" && (priority !== undefined || assignedTo !== undefined || channelId !== undefined)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     if (channelIds !== undefined) {
-      await db.conversationChannel.deleteMany({ where: { conversationId: id } });
-      if (channelIds.length > 0) {
+      // Remove channels that were deselected
+      const currentChannels = await db.conversationChannel.findMany({
+        where: { conversationId: id },
+        select: { channelId: true },
+      });
+      const currentIds = currentChannels.map(cc => cc.channelId);
+      const toRemove = currentIds.filter(cid => !channelIds.includes(cid));
+      const toAdd = channelIds.filter(cid => !currentIds.includes(cid));
+
+      if (toRemove.length > 0) {
+        await db.conversationChannel.deleteMany({
+          where: { conversationId: id, channelId: { in: toRemove } },
+        });
+      }
+      if (toAdd.length > 0) {
         await db.conversationChannel.createMany({
-          data: channelIds.map(cid => ({ conversationId: id, channelId: cid })),
+          data: toAdd.map(cid => ({ conversationId: id, channelId: cid })),
           skipDuplicates: true,
+        });
+      }
+    }
+
+    // Handle per-channel agent assignment
+    if (channelAgents !== undefined) {
+      for (const [channelId, memberId] of Object.entries(channelAgents)) {
+        await db.conversationChannel.updateMany({
+          where: { conversationId: id, channelId },
+          data: { assignedTo: memberId || null },
         });
       }
     }
@@ -51,7 +74,12 @@ export async function PATCH(req, context) {
       include: {
         assignedMember: { select: { id: true, name: true } },
         channel: { select: { id: true, name: true, color: true } },
-        conversationChannels: { include: { channel: { select: { id: true, name: true, color: true } } } },
+        conversationChannels: {
+          include: {
+            channel: { select: { id: true, name: true, color: true } },
+            assignedMember: { select: { id: true, name: true, role: true } },
+          }
+        },
       },
     });
 // Notify assigned agent

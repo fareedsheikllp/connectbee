@@ -53,6 +53,7 @@ export async function PATCH(req, context) {
       data: {
         name: data.name ?? group.name,
         description: data.description ?? group.description,
+        channelId: data.channelId !== undefined ? (data.channelId || null) : group.channelId,
       },
     });
 

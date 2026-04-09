@@ -43,7 +43,7 @@ export async function POST(req) {
     if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
     const workspace = { id: workspaceId };
 
-    const { name, description, contactIds } = await req.json();
+    const { name, description, contactIds, channelId } = await req.json();
     if (!name) return NextResponse.json({ error: "Group name is required" }, { status: 400 });
 
     const group = await db.contactGroup.create({
@@ -51,6 +51,7 @@ export async function POST(req) {
         workspaceId: workspace.id,
         name,
         description: description || "",
+        channelId: channelId || null,
         members: {
           create: (contactIds || []).map((contactId) => ({ contactId })),
         },

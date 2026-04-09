@@ -389,10 +389,16 @@ function ContactForm({ initial = {}, onSubmit, loading }) {
 function GroupForm({ initial = {}, contacts = [], onSubmit, loading }) {
   const [name, setName] = useState(initial.name || "");
   const [description, setDescription] = useState(initial.description || "");
+  const [channelId, setChannelId] = useState(initial.channelId || "");
+  const [channels, setChannels] = useState([]);
   const [selected, setSelected] = useState(
     initial.members ? initial.members.map((m) => m.contactId || m.contact?.id) : []
   );
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetch("/api/channels").then(r => r.json()).then(d => setChannels(d.channels || [])).catch(() => {});
+  }, []);
 
   const toggle = (id) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -407,7 +413,7 @@ function GroupForm({ initial = {}, contacts = [], onSubmit, loading }) {
     e.preventDefault();
     if (!name) return toast.error("Group name is required");
     if (!selected.length) return toast.error("Select at least one contact");
-    onSubmit({ name, description, contactIds: selected });
+    onSubmit({ name, description, contactIds: selected, channelId: channelId || null });
   };
 
   return (
@@ -418,6 +424,16 @@ function GroupForm({ initial = {}, contacts = [], onSubmit, loading }) {
       <Field label="Description">
         <input className={inputCls} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this group for?" />
       </Field>
+      {channels.length > 0 && (
+        <Field label="Assign to Channel" hint="Supervisors of this channel will see conversations from this group">
+          <select className={inputCls} value={channelId} onChange={(e) => setChannelId(e.target.value)}>
+            <option value="">No channel</option>
+            {channels.map((ch) => (
+              <option key={ch.id} value={ch.id}>{ch.name}</option>
+            ))}
+          </select>
+        </Field>
+      )}
       <div className="space-y-1.5">
         <label className="block text-xs font-medium text-ink-600">
           Members <span className="font-normal text-ink-400">({selected.length} selected)</span>

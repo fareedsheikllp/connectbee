@@ -1097,8 +1097,17 @@ async function updateConv(patch, msg) {
                           <span className="text-[10px] text-slate-400">{timeAgo(conv.updatedAt)}</span>
                         </div>
                       </div>
-                        {(conv.assignedMember || conv.channel) && (
-                          <div className="flex items-center gap-1.5 mb-1 mt-0.5">
+                      {conv.contact?.groupMembers?.length > 0 && (
+                        <div className="flex items-center gap-1 mb-1 flex-wrap">
+                          {conv.contact.groupMembers.map(gm => (
+                            <span key={gm.group.id} className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200">
+                              {gm.group.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {(conv.assignedMember || conv.channel) && (
+                        <div className="flex items-center gap-1.5 mb-1 mt-0.5">
                           {conv.assignedMember && (
                             <span className="text-[10px] text-slate-400">→ {conv.assignedMember.name}</span>
                           )}

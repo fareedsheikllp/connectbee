@@ -52,7 +52,7 @@ export async function GET() {
         contact: {
           select: {
             id: true, name: true, phone: true, avatar: true, subscribed: true,
-            groupMembers: { select: { group: { select: { id: true, name: true } } } },
+            groupMembers: { select: { group: { select: { id: true, name: true, channel: { select: { id: true, name: true, color: true } } } } } },
           }
         },
         channel: { select: { id: true, name: true, color: true } },

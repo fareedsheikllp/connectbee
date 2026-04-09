@@ -15,8 +15,14 @@ export async function POST(req, context) {
     const { success } = await broadcastRateLimit.limit(session.user.id);
     if (!success) return NextResponse.json({ error: "Too many requests, slow down." }, { status: 429 });
 
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const ws = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = ws?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
     const broadcast = await db.broadcast.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
+      where: { id, workspaceId },
       include: {
         recipients: { include: { contact: true } },
         workspace: true,

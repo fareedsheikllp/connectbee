@@ -6,14 +6,13 @@ export async function GET() {
   try {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const workspace = await db.workspace.findFirst({
-      where: {
-        OR: [
-          { userId: session.user.id },
-          { members: { some: { userId: session.user.id } } },
-        ],
-      },
-    });
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const ws = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = ws?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    const workspace = { id: workspaceId };
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
     const chatbots = await db.chatbot.findMany({ where: { workspaceId: workspace.id }, orderBy: { createdAt: "desc" } });
     return NextResponse.json({ chatbots });
@@ -24,15 +23,13 @@ export async function POST(req) {
   try {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const workspace = await db.workspace.findFirst({
-      where: {
-        OR: [
-          { userId: session.user.id },
-          { members: { some: { userId: session.user.id } } },
-        ],
-      },
-    });
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const ws = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = ws?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    const workspace = { id: workspaceId };
 
     if (!workspace) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 

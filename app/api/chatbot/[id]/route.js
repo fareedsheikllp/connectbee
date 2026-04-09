@@ -7,18 +7,14 @@ export async function GET(req, context) {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await context.params;
-    const chatbot = await db.chatbot.findFirst({
-      where: {
-  id,
-  workspace: {
-    OR: [
-      { userId: session.user.id },
-      { members: { some: { userId: session.user.id } } },
-    ],
-  },
-},
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const ws = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = ws?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    const chatbot = await db.chatbot.findFirst({ where: { id, workspaceId } });
 
-    });
     if (!chatbot) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ chatbot });
   } catch (err) {
@@ -32,18 +28,14 @@ export async function PATCH(req, context) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await context.params;
     const data = await req.json();
-    const chatbot = await db.chatbot.findFirst({
-      where: {
-  id,
-  workspace: {
-    OR: [
-      { userId: session.user.id },
-      { members: { some: { userId: session.user.id } } },
-    ],
-  },
-},
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const ws = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = ws?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    const chatbot = await db.chatbot.findFirst({ where: { id, workspaceId } });
 
-    });
     if (!chatbot) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const updated = await db.chatbot.update({
@@ -67,18 +59,14 @@ export async function DELETE(req, context) {
     const session = await auth();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await context.params;
-    const chatbot = await db.chatbot.findFirst({
-      where: {
-  id,
-  workspace: {
-    OR: [
-      { userId: session.user.id },
-      { members: { some: { userId: session.user.id } } },
-    ],
-  },
-},
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const ws = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = ws?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
+    const chatbot = await db.chatbot.findFirst({ where: { id, workspaceId } });
 
-    });
     if (!chatbot) return NextResponse.json({ error: "Not found" }, { status: 404 });
     await db.chatbot.delete({ where: { id } });
     return NextResponse.json({ success: true });

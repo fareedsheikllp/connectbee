@@ -190,6 +190,8 @@ model ContactGroup {
   name        String
   description String               @default("")
   members     ContactGroupMember[]
+  channelId   String?
+  channel     Channel?             @relation(fields: [channelId], references: [id])
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 }
@@ -216,6 +218,7 @@ model Channel {
 
   members       ChannelMember[]
   conversations Conversation[]
+  contactGroups  ContactGroup[]
 }
 
 model WorkspaceMember {

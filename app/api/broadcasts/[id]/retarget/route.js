@@ -15,12 +15,18 @@ export async function POST(req, context) {
 
     console.log("RETARGET broadcast:", id, "selectedContactIds:", selectedContactIds);
 
+    let workspaceId = session.user.workspaceId;
+    if (session.user.role === "owner" || session.user.role === "admin") {
+      const ws = await db.workspace.findUnique({ where: { userId: session.user.id } });
+      workspaceId = ws?.id ?? null;
+    }
+    if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
     const broadcast = await db.broadcast.findFirst({
-      where: { id, workspace: { userId: session.user.id } },
+      where: { id, workspaceId },
       include: {
         recipients: {
           where: {
-            status: "FAILED", // MessageStatus enum value
+            status: "FAILED",
           },
           include: { contact: true },
         },

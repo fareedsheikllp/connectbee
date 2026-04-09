@@ -808,8 +808,8 @@ async function updateConv(patch, msg) {
 
     // Use the actual API response to update state — no guessing
     if (updated) {
-      setSelected(s => ({ ...s, ...updated }));
-      setConversations(c => c.map(x => x.id === selected.id ? { ...x, ...updated } : x));
+      setSelected(s => ({ ...s, ...updated, conversationChannels: updated.conversationChannels ?? s.conversationChannels }));
+      setConversations(c => c.map(x => x.id === selected.id ? { ...x, ...updated, conversationChannels: updated.conversationChannels ?? x.conversationChannels } : x));
     } else {
       // Fallback — manually patch with extra member/channel objects
       const extra = {};
@@ -1097,28 +1097,20 @@ async function updateConv(patch, msg) {
                           <span className="text-[10px] text-slate-400">{timeAgo(conv.updatedAt)}</span>
                         </div>
                       </div>
-                        {conv.contact?.groupMembers?.length > 0 && (
-                          <div className="flex items-center gap-1 mb-1 flex-wrap">
-                            {conv.contact.groupMembers.slice(0, 2).map(gm => (
-                              <span key={gm.group.id} className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200">
-                                {gm.group.name}
-                              </span>
-                            ))}
-                            {conv.contact.groupMembers.length > 2 && (
-                              <span className="text-[10px] text-slate-400 font-medium">+{conv.contact.groupMembers.length - 2}</span>
-                            )}
-                          </div>
-                        )}
-                        {(conv.assignedMember || conv.channel) && (
-                          <div className="flex items-center gap-1.5 mb-1 mt-0.5">
+                      {(conv.assignedMember || conv.conversationChannels?.length > 0) && (
+                        <div className="flex items-center gap-1.5 mb-1 mt-0.5 flex-wrap">
                           {conv.assignedMember && (
                             <span className="text-[10px] text-slate-400">→ {conv.assignedMember.name}</span>
                           )}
-                          {conv.channel && (
-                            <span className="flex items-center gap-0.5 text-[10px] font-semibold" style={{ color: conv.channel.color }}>
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: conv.channel.color }} />
-                              {conv.channel.name}
+                          {conv.conversationChannels?.slice(0, 2).map(cc => (
+                            <span key={cc.channel.id} className="flex items-center gap-0.5 text-[10px] font-semibold"
+                              style={{ color: cc.channel.color }}>
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cc.channel.color }} />
+                              {cc.channel.name}
                             </span>
+                          ))}
+                          {conv.conversationChannels?.length > 2 && (
+                            <span className="text-[10px] text-slate-400">+{conv.conversationChannels.length - 2}</span>
                           )}
                         </div>
                       )}
@@ -1217,21 +1209,32 @@ async function updateConv(patch, msg) {
                           </button>
                           {showAssign && (
                             <div className="absolute right-0 top-10 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-3 space-y-3 w-56">
-                              <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Channel</p>
-                                  <select
-                                    value={assignChannel || selected.channelId || ""}
-                                      onChange={e => {
-                                        const val = e.target.value;
-                                        setAssignChannel(val);
-                                        updateConv({ channelId: val === "UNASSIGN" ? null : val || null });
-                                      }}
-                                    className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
-                                  >
-                                  <option value="">No channel</option>
-                                  {channels.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
-                                </select>
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Channels</p>
+                              <div className="space-y-1 max-h-32 overflow-y-auto">
+                                {channels.map(ch => {
+                                  const isAssigned = selected.conversationChannels?.some(cc => cc.channel.id === ch.id);
+                                  return (
+                                    <label key={ch.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-1 py-1 rounded">
+                                      <input
+                                        type="checkbox"
+                                        checked={!!isAssigned}
+                                        onChange={() => {
+                                          const currentIds = selected.conversationChannels?.map(cc => cc.channel.id) || [];
+                                          const newIds = isAssigned
+                                            ? currentIds.filter(cid => cid !== ch.id)
+                                            : [...currentIds, ch.id];
+                                          updateConv({ channelIds: newIds });
+                                        }}
+                                        className="w-3 h-3 accent-brand-500"
+                                      />
+                                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: ch.color }} />
+                                      <span className="text-xs text-slate-700">{ch.name}</span>
+                                    </label>
+                                  );
+                                })}
                               </div>
+                            </div>
                               <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Agent</p>
                                 <select

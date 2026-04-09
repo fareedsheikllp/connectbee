@@ -22,11 +22,20 @@ export async function PATCH(req, context) {
     });
     if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const { status, priority, labels, dueAt, assignedTo, channelId } = await req.json();
+    const { status, priority, labels, dueAt, assignedTo, channelId, channelIds } = await req.json();
 
     // Agents can't change priority or assign
     if (role === "agent" && (priority !== undefined || assignedTo !== undefined || channelId !== undefined)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (channelIds !== undefined) {
+      await db.conversationChannel.deleteMany({ where: { conversationId: id } });
+      if (channelIds.length > 0) {
+        await db.conversationChannel.createMany({
+          data: channelIds.map(cid => ({ conversationId: id, channelId: cid })),
+          skipDuplicates: true,
+        });
+      }
     }
 
     const updated = await db.conversation.update({
@@ -42,6 +51,7 @@ export async function PATCH(req, context) {
       include: {
         assignedMember: { select: { id: true, name: true } },
         channel: { select: { id: true, name: true, color: true } },
+        conversationChannels: { include: { channel: { select: { id: true, name: true, color: true } } } },
       },
     });
 // Notify assigned agent

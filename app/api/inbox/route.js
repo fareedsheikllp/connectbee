@@ -39,9 +39,9 @@ export async function GET() {
         const groupContactIds = [...new Set(groupContacts.map(gc => gc.contactId))];
 
         where.OR = [
-          { assignedTo: null, channelId: null },        // unassigned — all supervisors see
-          { channelId: { in: channelIds } },             // assigned to their channel
-          { contactId: { in: groupContactIds } },        // contact belongs to their group
+          { assignedTo: null, conversationChannels: { none: {} } },
+          { conversationChannels: { some: { channelId: { in: channelIds } } } },
+          { contactId: { in: groupContactIds } },
         ];
       }
 
@@ -55,6 +55,7 @@ export async function GET() {
             groupMembers: { select: { group: { select: { id: true, name: true, channel: { select: { id: true, name: true, color: true } } } } } },
           }
         },
+        conversationChannels: { include: { channel: { select: { id: true, name: true, color: true } } } },
         channel: { select: { id: true, name: true, color: true } },
         assignedMember: { select: { id: true, name: true } },
       },

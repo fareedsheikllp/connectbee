@@ -219,8 +219,18 @@ model Channel {
   members       ChannelMember[]
   conversations Conversation[]
   contactGroups  ContactGroup[]
+  conversationChannels ConversationChannel[]
 }
+model ConversationChannel {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  channelId      String
+  channel        Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
 
+  @@unique([conversationId, channelId])
+}
 model WorkspaceMember {
   id          String    @id @default(cuid())
   workspaceId String
@@ -267,7 +277,8 @@ model Conversation {
   unreadCount Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
+  
+  conversationChannels ConversationChannel[]
   messages    Message[]
   priority   String   @default("NONE")
   labels     String   @default("")

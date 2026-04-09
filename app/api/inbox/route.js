@@ -24,25 +24,37 @@ export async function GET() {
     if (role === "agent") {
       // Agents only see conversations assigned to them
       where.assignedTo = session.user.memberId;
-    } else if (role === "supervisor") {
-      const memberChannels = await db.channelMember.findMany({
-        where: { memberId: session.user.memberId },
-        select: { channelId: true },
-      });
-      const channelIds = memberChannels.map(c => c.channelId);
+      } else if (role === "supervisor") {
+        const memberChannels = await db.channelMember.findMany({
+          where: { memberId: session.user.memberId },
+          select: { channelId: true },
+        });
+        const channelIds = memberChannels.map(c => c.channelId);
 
-      // Supervisors see: unassigned convos + convos in their channels
-      where.OR = [
-        { assignedTo: null, channelId: null },   // unassigned inbox
-        { channelId: { in: channelIds } },        // their channel convos
-      ];
-    }
+        // Find contacts whose groups are linked to this supervisor's channels
+        const groupContacts = await db.contactGroupMember.findMany({
+          where: { group: { channelId: { in: channelIds } } },
+          select: { contactId: true },
+        });
+        const groupContactIds = [...new Set(groupContacts.map(gc => gc.contactId))];
+
+        where.OR = [
+          { assignedTo: null, channelId: null },        // unassigned — all supervisors see
+          { channelId: { in: channelIds } },             // assigned to their channel
+          { contactId: { in: groupContactIds } },        // contact belongs to their group
+        ];
+      }
 
     const conversations = await db.conversation.findMany({
       where,
       orderBy: { updatedAt: "desc" },
       include: {
-        contact: { select: { id: true, name: true, phone: true, avatar: true, subscribed: true } },
+        contact: {
+          select: {
+            id: true, name: true, phone: true, avatar: true, subscribed: true,
+            groupMembers: { select: { group: { select: { id: true, name: true } } } },
+          }
+        },
         channel: { select: { id: true, name: true, color: true } },
         assignedMember: { select: { id: true, name: true } },
       },

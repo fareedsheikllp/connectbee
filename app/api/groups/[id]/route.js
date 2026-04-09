@@ -68,12 +68,47 @@ export async function PATCH(req, context) {
       }
     }
 
-    const result = await db.contactGroup.findFirst({
-      where: { id },
-      include: { members: { include: { contact: true } } },
-    });
+// Sync existing conversations when channel changes
+if (data.channelId !== undefined && data.channelId !== group.channelId) {
+  const groupMembers = await db.contactGroupMember.findMany({
+    where: { groupId: id },
+    select: { contactId: true },
+  });
+  const contactIds = groupMembers.map(m => m.contactId);
+  const conversations = await db.conversation.findMany({
+    where: { contactId: { in: contactIds }, workspaceId },
+    select: { id: true },
+  });
 
-    return NextResponse.json(result);
+  if (conversations.length > 0) {
+    // Remove old channel assignment if there was one
+    if (group.channelId) {
+      await db.conversationChannel.deleteMany({
+        where: {
+          conversationId: { in: conversations.map(c => c.id) },
+          channelId: group.channelId,
+        },
+      });
+    }
+    // Add new channel assignment if one was selected
+    if (data.channelId) {
+      await db.conversationChannel.createMany({
+        data: conversations.map(c => ({
+          conversationId: c.id,
+          channelId: data.channelId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+}
+
+const result = await db.contactGroup.findFirst({
+  where: { id },
+  include: { members: { include: { contact: true } } },
+});
+
+return NextResponse.json(result);
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: err.message }, { status: 500 });

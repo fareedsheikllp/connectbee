@@ -811,7 +811,15 @@ async function updateConv(patch, msg) {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
-    if (!res.ok) { toast.error("Failed to update"); return; }
+    if (!res.ok) {
+      const errData = await res.json();
+      if (errData.groupControlled) {
+        toast.error(errData.error, { duration: 6000 });
+      } else {
+        toast.error("Failed to update");
+      }
+      return;
+    }
 
     const data = await res.json();
     const updated = data.conversation;
@@ -845,16 +853,21 @@ async function updateConv(patch, msg) {
     if (selectedConvs.size === 0) return;
     setBulkAssigning(true);
     try {
-      await Promise.all([...selectedConvs].map(id =>
-        fetch(`/api/inbox/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...(bulkChannel === "UNASSIGN" ? { channelIds: [], channelId: null } : Array.isArray(bulkChannel) && bulkChannel.length > 0 ? { addChannelIds: bulkChannel } : {}),
-            // per-channel agents handled separately
-          }),
-        })
-      ));
+    await Promise.all([...selectedConvs].map(async id => {
+      const res = await fetch(`/api/inbox/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(bulkChannel === "UNASSIGN" ? { channelIds: [], channelId: null } : Array.isArray(bulkChannel) && bulkChannel.length > 0 ? { addChannelIds: bulkChannel } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        if (errData.groupControlled) {
+          toast.error(errData.error, { duration: 6000 });
+        }
+      }
+    }));
       if (Object.keys(bulkAgents).length > 0) {
         await Promise.all([...selectedConvs].map(convId =>
           Promise.all(Object.entries(bulkAgents).map(([channelId, memberId]) =>
@@ -869,7 +882,13 @@ async function updateConv(patch, msg) {
       setBulkChannel("");
       setBulkAgents({});
       fetchConversations(true);
-    } catch { toast.error("Failed to assign"); }
+    } catch (err) {
+      if (err?.groupControlled) {
+        toast.error(err.error, { duration: 6000 });
+      } else {
+        toast.error("Failed to assign");
+      }
+    }
     finally { setBulkAssigning(false); }
   }
   const filtered = conversations.filter(c => {

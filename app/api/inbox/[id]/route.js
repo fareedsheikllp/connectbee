@@ -39,6 +39,23 @@ export async function PATCH(req, context) {
       const toAdd = channelIds.filter(cid => !currentIds.includes(cid));
 
       if (toRemove.length > 0) {
+        // Check if any of these channels were assigned via a group
+        const groupControlled = await db.contactGroupMember.findMany({
+          where: {
+            contactId: conversation.contactId,
+            group: { channelId: { in: toRemove } },
+          },
+          include: { group: { select: { name: true, channelId: true } } },
+        });
+
+        if (groupControlled.length > 0) {
+          const groupNames = groupControlled.map(g => g.group.name).join(", ");
+          return NextResponse.json({
+            error: `This channel was assigned via a group (${groupNames}). To remove it, remove the contact from that group instead.`,
+            groupControlled: true,
+          }, { status: 400 });
+        }
+
         await db.conversationChannel.deleteMany({
           where: { conversationId: id, channelId: { in: toRemove } },
         });

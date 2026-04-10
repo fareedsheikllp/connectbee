@@ -26,6 +26,7 @@ export async function PATCH(req, context) {
         body: data.body ?? template.body,
         category: data.category ?? template.category,
         tags: data.tags ?? template.tags,
+        mediaUrl: data.mediaUrl !== undefined ? data.mediaUrl : template.mediaUrl,
       },
     });
     return NextResponse.json(updated);

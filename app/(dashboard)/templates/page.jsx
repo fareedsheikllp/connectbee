@@ -558,17 +558,6 @@ export default function TemplatesPage() {
               ))}
             </div>
           </div>
-
-          {/* Meta notice */}
-          <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Info size={12} className="text-amber-500"/>
-              <p className="text-xs font-bold text-amber-700">Verification Pending</p>
-            </div>
-            <p className="text-[11px] text-amber-600 leading-relaxed">
-              Once your Meta Business is verified, you can submit templates for approval.
-            </p>
-          </div>
         </aside>
 
         {/* ── Main content ── */}

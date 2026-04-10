@@ -9,7 +9,6 @@ import {
   MessageSquare, ShoppingBag, Zap, Image as ImageIcon,
   CheckCircle
 } from "lucide-react";
-
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function highlightVars(text) {
@@ -130,6 +129,10 @@ function TemplatePicker({ onSelect, onClose }) {
                   }
                 </div>
               </div>
+              {t.mediaUrl && (
+                <img src={t.mediaUrl} alt="Media" className="w-full rounded-lg mb-2 object-cover max-h-24 mt-1"
+                  onError={(e) => { e.target.style.display = "none"; }} />
+              )}
               <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{t.body}</p>
             </button>
             ))
@@ -314,6 +317,7 @@ export default function NewBroadcastPage() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showBotPicker, setShowBotPicker] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [mediaUrl, setMediaUrl] = useState("");
 
   // Step 2 — Audience
   const [contacts, setContacts] = useState([]);
@@ -583,8 +587,12 @@ async function handleSubmit() {
                   </div>
                   <div className="bg-[#ECE5DD] p-4 min-h-36">
                     {message ? (
-                      <div className="bg-white rounded-xl rounded-tl-none shadow-sm px-3 py-2.5 max-w-[85%]">
-                        <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed break-words">
+                        <div className="bg-white rounded-xl rounded-tl-none shadow-sm px-3 py-2.5 max-w-[85%]">
+                          {mediaUrl && (
+                            <img src={mediaUrl} alt="Media" className="w-full rounded-lg mb-2 object-cover max-h-32"
+                              onError={(e) => { e.target.style.display = "none"; }} />
+                          )}
+                          <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed break-words">
                           {highlightVars(message)}
                         </p>
                         <p className="text-right text-[10px] text-gray-400 mt-1.5">
@@ -770,8 +778,12 @@ async function handleSubmit() {
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Message Preview</p>
               </div>
               <div className="bg-[#ECE5DD] p-5">
-                <div className="bg-white rounded-xl rounded-tl-none shadow-sm px-4 py-3 max-w-[85%]">
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed break-words">
+                  <div className="bg-white rounded-xl rounded-tl-none shadow-sm px-4 py-3 max-w-[85%]">
+                    {mediaUrl && (
+                      <img src={mediaUrl} alt="Media" className="w-full rounded-lg mb-2 object-cover max-h-40"
+                        onError={(e) => { e.target.style.display = "none"; }} />
+                    )}
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed break-words">
                     {highlightVars(message)}
                   </p>
                   <p className="text-right text-xs text-gray-400 mt-2">
@@ -823,7 +835,7 @@ async function handleSubmit() {
       {/* Modals */}
       {showTemplatePicker && (
         <TemplatePicker
-          onSelect={(t) => { setMessage(t.body); setSelectedTemplate(t); setShowTemplatePicker(false); }}
+          onSelect={(t) => { setMessage(t.body); setMediaUrl(t.mediaUrl || ""); setSelectedTemplate(t); setShowTemplatePicker(false); }}
           onClose={() => setShowTemplatePicker(false)}
         />
       )}

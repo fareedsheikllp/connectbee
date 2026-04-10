@@ -43,19 +43,25 @@ export async function POST(req, context) {
       body: JSON.stringify({
         friendly_name: template.name,
         language: "en",
-        types: template.mediaUrl ? {
+        types: (template.mediaUrl && exampleValues.length > 0) ? {
+          "twilio/card": {
+            body: convertedBody,
+            media: [template.mediaUrl],
+            footer: "Reply STOP to unsubscribe",
+            example: { body_text: [exampleValues] }
+          }
+        } : template.mediaUrl ? {
           "twilio/media": {
             body: convertedBody,
             media: [template.mediaUrl],
             footer: "Reply STOP to unsubscribe",
-            ...(exampleValues.length > 0 && { example: { body_text: [exampleValues] } })
           }
         } : {
-        "twilio/text": {
-          body: convertedBody,
-          footer: "Reply STOP to unsubscribe",
-          ...(exampleValues.length > 0 && { example: { body_text: [exampleValues] } })
-        }
+          "twilio/text": {
+            body: convertedBody,
+            footer: "Reply STOP to unsubscribe",
+            ...(exampleValues.length > 0 && { example: { body_text: [exampleValues] } })
+          }
         }
       }),
     });

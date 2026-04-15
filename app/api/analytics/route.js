@@ -230,7 +230,6 @@ export async function GET(req) {
       color: ch.color,
       total: ch._count.conversations,
       open: ch.conversations.filter(c => c.status === "OPEN").length,
-      resolved: ch.conversations.filter(c => c.status === "RESOLVED").length,
       bot: ch.conversations.filter(c => c.status === "BOT").length,
     }));
 
@@ -248,7 +247,6 @@ export async function GET(req) {
       role: m.role,
       total: m.conversations.length,
       open: m.conversations.filter(c => c.status === "OPEN").length,
-      resolved: m.conversations.filter(c => c.status === "RESOLVED").length,
     }));
     return NextResponse.json({
       totals: {

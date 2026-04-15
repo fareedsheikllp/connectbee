@@ -674,6 +674,8 @@ export default function InboxPage() {
   const [bulkAssigning, setBulkAssigning] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const isResizing = useRef(false);
+  const selectedRef = useRef(null);
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
 
   useEffect(() => {
     fetch("/api/inbox/canned").then(r => r.json()).then(d => setAllCanned(d.canned || [])).catch(() => {});
@@ -694,36 +696,35 @@ export default function InboxPage() {
       try {
         const r = await fetch("/api/inbox");
         const d = await r.json();
-        setConversations(prev => {
+        const currentSelected = selectedRef.current;
+        setConversations(() => {
           const incoming = d.conversations || [];
-          // Merge — keep local state for selected conversation to avoid flicker
-          return incoming.map(c => {
-            const existing = prev.find(p => p.id === c.id);
-            // If this is the selected conversation, prefer local state to avoid overwriting mid-edit
-            if (selected?.id === c.id) return { ...c, ...existing, assignedMember: existing?.assignedMember, channel: existing?.channel };
-            return c;
-          });
+          if (currentSelected) {
+            const fresh = incoming.find(c => c.id === currentSelected.id);
+            if (fresh) setSelected(fresh);
+          }
+          return incoming;
         });
       } catch {}
     }, 3000);
     return () => clearInterval(iv);
   }, []);
-
+  const selectedId = selected?.id;
   useEffect(() => {
-    if (!selected) return;
-    fetchMessages(selected.id);
+    if (!selectedId) return;
+    fetchMessages(selectedId);
     setNotesCount(0);
-    fetch(`/api/inbox/${selected.id}/messages`)
+    fetch(`/api/inbox/${selectedId}/messages`)
       .then(r => r.json())
       .then(d => {
         const count = (d.messages || []).filter(m => m.isInternal).length;
         setNotesCount(count);
       })
       .catch(() => {});
-    setLastSeenAt(p => ({ ...p, [selected.id]: new Date().toISOString() }));
+    setLastSeenAt(p => ({ ...p, [selectedId]: new Date().toISOString() }));
     const iv = setInterval(async () => {
       try {
-        const r = await fetch(`/api/inbox/${selected.id}/messages`);
+        const r = await fetch(`/api/inbox/${selectedId}/messages`);
         const d = await r.json();
         const incoming = (d.messages || []).filter(m => !m.isInternal);
         setMessages(prev => {
@@ -732,11 +733,11 @@ export default function InboxPage() {
           incoming.forEach(m => { if (!ids.has(m.id)) merged.push(m); });
           return merged.length !== prev.length ? merged : prev;
         });
-        setLastSeenAt(p => ({ ...p, [selected.id]: new Date().toISOString() }));
+        setLastSeenAt(p => ({ ...p, [selectedId]: new Date().toISOString() }));
       } catch {}
     }, 3000);
     return () => clearInterval(iv);
-  }, [selected]);
+  }, [selectedId]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => {
@@ -760,11 +761,17 @@ export default function InboxPage() {
     if (!silent) setLoading(true);
     try {
       const r = await fetch("/api/inbox"); const d = await r.json();
-      setConversations(d.conversations || []);
-      if (d.conversations?.length > 0 && !selected) {
-        const first = d.conversations[0];
-        setSelected(first);
-        fetch(`/api/inbox/${first.id}/messages`)
+      const incoming = d.conversations || [];
+      setConversations(incoming);
+      const currentSelected = selectedRef.current;
+      if (currentSelected) {
+        const fresh = incoming.find(c => c.id === currentSelected.id);
+        if (fresh) setSelected(fresh);
+      }
+      if (incoming.length > 0 && !currentSelected) {
+      const first = incoming[0];
+            setSelected(first);
+            fetch(`/api/inbox/${first.id}/messages`)
           .then(r => r.json())
           .then(d => {
             const count = (d.messages || []).filter(m => m.isInternal).length;
@@ -846,7 +853,7 @@ async function updateConv(patch, msg) {
       setConversations(c => c.map(x => x.id === selected.id ? { ...x, ...merged } : x));
     }
 
-    if (msg) toast.success(msg);
+    await fetchConversations(true);
   } catch { toast.error("Something went wrong"); }
 }
   async function bulkAssign() {
@@ -858,7 +865,7 @@ async function updateConv(patch, msg) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...(bulkChannel === "UNASSIGN" ? { channelIds: [], channelId: null } : Array.isArray(bulkChannel) && bulkChannel.length > 0 ? { addChannelIds: bulkChannel } : {}),
+          ...(Array.isArray(bulkChannel) && bulkChannel.length > 0 ? { addChannelIds: bulkChannel } : {}),
         }),
       });
       if (!res.ok) {
@@ -871,9 +878,7 @@ async function updateConv(patch, msg) {
       if (Object.keys(bulkAgents).length > 0) {
         await Promise.all([...selectedConvs].map(convId =>
           Promise.all(Object.entries(bulkAgents).map(([channelId, memberId]) =>
-            channelId === "__all__"
-              ? fetch(`/api/inbox/${convId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ assignedTo: memberId || null }) })
-              : fetch(`/api/inbox/${convId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelAgents: { [channelId]: memberId || null } }) })
+          fetch(`/api/inbox/${convId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelAgents: { [channelId]: memberId || null } }) })
           ))
         ));
       }
@@ -949,7 +954,7 @@ async function updateConv(patch, msg) {
         {/* Status + Channel filters combined */}
         <div className="px-3 pb-2 space-y-1.5">
           <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
-            {["ALL", "OPEN", "BOT", "RESOLVED"].map(s => {
+            {["ALL", "OPEN", "BOT"].map(s => {
               const active = statusFilter === s;
               const sc = STATUS_CONFIG[s];
               return (
@@ -991,15 +996,6 @@ async function updateConv(patch, msg) {
             <p className="text-[11px] font-bold text-brand-700">{selectedConvs.size} selected</p>
               <div className="space-y-1">
                 <p className="text-[10px] text-slate-500 font-medium">Channels</p>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={bulkChannel === "UNASSIGN"}
-                    onChange={() => setBulkChannel(prev => prev === "UNASSIGN" ? [] : "UNASSIGN")}
-                    className="w-3 h-3 accent-red-500"
-                  />
-                  <span className="text-xs text-red-500 font-medium">Remove all channels</span>
-                </label>
                 {channels.map(ch => (
                 <label key={ch.id} className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -1022,11 +1018,7 @@ async function updateConv(patch, msg) {
               {(() => {
                 const selectedChannelIds = Array.isArray(bulkChannel) ? bulkChannel : (bulkChannel && bulkChannel !== "UNASSIGN" ? [bulkChannel] : []);
                 if (selectedChannelIds.length === 0) return (
-                <select value={bulkAgents["__all__"] || ""} onChange={e => setBulkAgents({ "__all__": e.target.value })}
-                  className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700">
-                  <option value="">Unassigned</option>
-                  {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
-                </select>
+                  <p className="text-[11px] text-slate-400 italic">Select a channel above to assign agents</p>
                 );
                 return channels
                   .filter(ch => selectedChannelIds.includes(ch.id))
@@ -1044,7 +1036,7 @@ async function updateConv(patch, msg) {
                           onChange={e => setBulkAgents(prev => ({ ...prev, [ch.id]: e.target.value }))}
                           className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
                         >
-                          <option value="">Unassigned</option>
+                          <option value="">Unassign Agent</option>
                           {chMembers.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
                         </select>
                       </div>
@@ -1055,7 +1047,7 @@ async function updateConv(patch, msg) {
             <div className="flex gap-1.5">
               <button
                 onClick={bulkAssign}
-                disabled={bulkAssigning || (!bulkChannel && Object.keys(bulkAgents).length === 0)}
+                disabled={bulkAssigning || !Array.isArray(bulkChannel) || bulkChannel.length === 0}
                 className="flex-1 h-7 bg-brand-500 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-1"
               >
                 {bulkAssigning ? <Loader2 size={11} className="animate-spin" /> : <Users size={11} />}
@@ -1185,11 +1177,6 @@ async function updateConv(patch, msg) {
                                     </span>
                                   );
                                 })}
-                                {conv.assignedMember && !conv.conversationChannels?.some(cc => cc.assignedMember) && (
-                                  <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
-                                    {conv.assignedMember.name}
-                                  </span>
-                                )}
                                 {chans.length > 2 && (
                                   <span className="text-[10px] text-slate-400">+{chans.length - 2}</span>
                                 )}
@@ -1293,24 +1280,11 @@ async function updateConv(patch, msg) {
                             className={`flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border transition-all ${showAssign ? "bg-brand-500 text-white border-brand-500" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
                           >
                             <Users size={12} />
-                            {selected.assignedMember ? selected.assignedMember.name : "Assign"}
+                            Assign
                             <ChevronDown size={10} />
                           </button>
                           {showAssign && (
                             <div className="absolute right-0 top-10 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-3 space-y-3 w-64 max-h-96 overflow-y-auto">
-                                {selected.assignedMember && (
-                                <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100">
-                                  <span className="text-xs text-slate-500">
-                                    Assigned: <span className="font-semibold text-slate-700">{selected.assignedMember.name}</span>
-                                  </span>
-                                  <button
-                                    onClick={() => updateConv({ assignedTo: null }, "Unassigned")}
-                                    className="text-[10px] text-red-500 hover:text-red-600 font-semibold"
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              )}
                               <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Channels</p>
                                 <div className="space-y-1">

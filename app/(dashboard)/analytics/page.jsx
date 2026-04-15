@@ -19,7 +19,6 @@ function Card3D({ children, className = "" }) {
 
 // ─── Agent card ───────────────────────────────────────────────────
 function AgentCard({ agent }) {
-  const resolveRate = agent.total > 0 ? Math.round((agent.resolved / agent.total) * 100) : 0;
   return (
     <Card3D className="p-5">
       <div className="flex items-center gap-3 mb-4">
@@ -40,7 +39,6 @@ function AgentCard({ agent }) {
       <div className="space-y-2">
         {[
           { label: "Open", value: agent.open, color: "#38bdf8" },
-          { label: "Resolved", value: agent.resolved, color: "#22c55e" },
         ].map(s => (
           <div key={s.label}>
             <div className="flex justify-between text-[11px] mb-1">
@@ -53,12 +51,6 @@ function AgentCard({ agent }) {
             </div>
           </div>
         ))}
-        <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
-          <span className="text-[11px] text-gray-400">Resolve rate</span>
-          <span className={`text-sm font-black ${resolveRate >= 70 ? "text-emerald-600" : resolveRate >= 40 ? "text-amber-600" : "text-red-500"}`}>
-            {resolveRate}%
-          </span>
-        </div>
       </div>
     </Card3D>
   );
@@ -100,12 +92,6 @@ function ChannelCard({ channel }) {
             </div>
           </div>
         ))}
-        <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
-          <span className="text-[11px] text-gray-400">Resolve rate</span>
-          <span className={`text-sm font-black ${resolveRate >= 70 ? "text-emerald-600" : resolveRate >= 40 ? "text-amber-600" : "text-red-500"}`}>
-            {resolveRate}%
-          </span>
-        </div>
       </div>
     </Card3D>
   );
@@ -618,7 +604,6 @@ export default function AnalyticsPage() {
                               <span className="text-xs font-bold text-gray-700">{ch.total} total</span>
                               <div className="flex gap-2 justify-end mt-0.5">
                                 <span className="text-[10px] text-sky-500">{ch.open} open</span>
-                                <span className="text-[10px] text-emerald-500">{ch.resolved} done</span>
                               </div>
                             </div>
                           </div>
@@ -633,7 +618,6 @@ export default function AnalyticsPage() {
                         {[...(BR.agentBreakdown || [])]
                           .sort((a, b) => b.open - a.open)
                           .map((agent, i) => {
-                            const resolveRate = agent.total > 0 ? Math.round((agent.resolved / agent.total) * 100) : 0;
                             const maxOpen = Math.max(...(BR.agentBreakdown || []).map(a => a.open), 1);
                             return (
                               <div key={agent.id} className="flex items-center gap-3">
@@ -650,11 +634,6 @@ export default function AnalyticsPage() {
                                 </div>
                                 <div className="text-right flex-shrink-0 w-24">
                                   <span className="text-xs font-bold text-gray-700">{agent.open} open</span>
-                                  <div className="flex gap-2 justify-end mt-0.5">
-                                    <span className={`text-[10px] font-semibold ${resolveRate >= 70 ? "text-emerald-500" : resolveRate >= 40 ? "text-amber-500" : "text-red-500"}`}>
-                                      {resolveRate}% resolved
-                                    </span>
-                                  </div>
                                 </div>
                               </div>
                             );
@@ -889,9 +868,8 @@ export default function AnalyticsPage() {
                     </div>
                     <div className="divide-y divide-gray-50">
                       {[...(BR.agentBreakdown || [])]
-                        .sort((a, b) => b.resolved - a.resolved)
+                        .sort((a, b) => b.total - a.total)
                         .map((agent, i) => {
-                          const resolveRate = agent.total > 0 ? Math.round((agent.resolved / agent.total) * 100) : 0;
                           const medals = ["🥇", "🥈", "🥉"];
                           return (
                             <div key={agent.id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/60 transition-colors">
@@ -904,20 +882,6 @@ export default function AnalyticsPage() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-gray-800">{agent.name}</p>
                                 <p className="text-xs text-gray-400">{agent.total} total · {agent.open} open</p>
-                              </div>
-                              <div className="text-right flex-shrink-0">
-                                <p className="text-lg font-black text-emerald-600">{agent.resolved}</p>
-                                <p className="text-[10px] text-gray-400">resolved</p>
-                              </div>
-                              <div className="w-20 flex-shrink-0">
-                                <div className="flex justify-between text-[10px] mb-1">
-                                  <span className="text-gray-400">Rate</span>
-                                  <span className={`font-bold ${resolveRate >= 70 ? "text-emerald-600" : resolveRate >= 40 ? "text-amber-600" : "text-red-500"}`}>{resolveRate}%</span>
-                                </div>
-                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                  <div className="h-full rounded-full transition-all duration-700"
-                                    style={{ width: `${resolveRate}%`, backgroundColor: resolveRate >= 70 ? "#22c55e" : resolveRate >= 40 ? "#f59e0b" : "#ef4444" }} />
-                                </div>
                               </div>
                             </div>
                           );

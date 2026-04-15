@@ -91,6 +91,7 @@ model Workspace {
   twilioAccountSid    String?
   twilioAuthToken     String?
   twilioPhoneNumber   String?
+  permissions  Json?  @default("{}")
 
   // Relations
   contacts    Contact[]

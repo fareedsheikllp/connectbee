@@ -39,23 +39,6 @@ export async function PATCH(req, context) {
       const toAdd = channelIds.filter(cid => !currentIds.includes(cid));
 
       if (toRemove.length > 0) {
-        // Check if any of these channels were assigned via a group
-        const groupControlled = await db.contactGroupMember.findMany({
-          where: {
-            contactId: conversation.contactId,
-            group: { channelId: { in: toRemove } },
-          },
-          include: { group: { select: { name: true, channelId: true } } },
-        });
-
-        if (groupControlled.length > 0) {
-          const groupNames = groupControlled.map(g => g.group.name).join(", ");
-          return NextResponse.json({
-            error: `This channel was assigned via a group (${groupNames}). To remove it, remove the contact from that group instead.`,
-            groupControlled: true,
-          }, { status: 400 });
-        }
-
         await db.conversationChannel.deleteMany({
           where: { conversationId: id, channelId: { in: toRemove } },
         });
@@ -70,7 +53,7 @@ export async function PATCH(req, context) {
       if (channelIds.length === 0) {
         await db.conversation.update({
           where: { id },
-          data: { channelId: null },
+          data: { channelId: null, assignedTo: null },
         });
       }
     }
@@ -87,7 +70,7 @@ export async function PATCH(req, context) {
       for (const [channelId, memberId] of Object.entries(channelAgents)) {
         await db.conversationChannel.updateMany({
           where: { conversationId: id, channelId },
-          data: { assignedTo: memberId || null },
+          data: { assignedTo: memberId ? memberId : null },
         });
       }
     }

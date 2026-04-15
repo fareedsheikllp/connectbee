@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+function normalizePhone(phone) {
+  const digits = phone.replace(/\D/g, "");
+  // Strip leading 1 if it's 11 digits starting with 1
+  return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+}
+
 async function getWorkspaceId(session) {
   if (session.user.role === "owner" || session.user.role === "admin") {
     const workspace = await db.workspace.findUnique({ where: { userId: session.user.id } });
@@ -39,9 +45,10 @@ export async function POST(req) {
     if (!name || !phone) return NextResponse.json({ error: "Name and phone are required" }, { status: 400 });
 
     // Check duplicate phone
-    const existing = await db.contact.findFirst({
-      where: { workspaceId, phone },
-    });
+    const normalized = normalizePhone(phone);
+    const allContacts = await db.contact.findMany({ where: { workspaceId }, select: { phone: true } });
+    const existing = allContacts.find(c => normalizePhone(c.phone) === normalized);
+
     if (existing) return NextResponse.json({ error: "Phone number already exists" }, { status: 409 });
 
     const contact = await db.contact.create({

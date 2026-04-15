@@ -20,32 +20,13 @@ export async function GET() {
     if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
 
     let where = { workspaceId };
+    if (role === "agent") {
+      where = {
+        ...where,
+        conversationChannels: { some: { assignedTo: session.user.memberId } },
+      };
+    }
 
-      if (role === "agent") {
-        where.OR = [
-          { assignedTo: session.user.memberId },
-          { conversationChannels: { some: { assignedTo: session.user.memberId } } },
-        ];
-      } else if (role === "supervisor") {
-        const memberChannels = await db.channelMember.findMany({
-          where: { memberId: session.user.memberId },
-          select: { channelId: true },
-        });
-        const channelIds = memberChannels.map(c => c.channelId);
-
-        // Find contacts whose groups are linked to this supervisor's channels
-        const groupContacts = await db.contactGroupMember.findMany({
-          where: { group: { channelId: { in: channelIds } } },
-          select: { contactId: true },
-        });
-        const groupContactIds = [...new Set(groupContacts.map(gc => gc.contactId))];
-
-        where.OR = [
-          { assignedTo: null, conversationChannels: { none: {} } },
-          { conversationChannels: { some: { channelId: { in: channelIds } } } },
-          { contactId: { in: groupContactIds } },
-        ];
-      }
 
     const conversations = await db.conversation.findMany({
       where,

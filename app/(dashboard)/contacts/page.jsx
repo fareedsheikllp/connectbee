@@ -758,9 +758,10 @@ export default function ContactsPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-surface-100 p-1 rounded-xl w-fit">
         {[
-          { key: "contacts", label: `Contacts (${contacts.length})` },
-          { key: "groups", label: `Groups (${groups.length})` },
-        ].map((t) => (
+        { key: "contacts", label: `Contacts (${contacts.length})` },
+        { key: "groups", label: `Groups (${groups.length})` },
+        { key: "unassigned", label: `Unassigned (${contacts.filter(c => !groups.some(g => g.members?.some(m => (m.contactId || m.contact?.id) === c.id))).length})` },
+          ].map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
               tab === t.key ? "bg-white text-ink-800 shadow-soft" : "text-ink-500 hover:text-ink-700"
@@ -953,8 +954,59 @@ export default function ContactsPage() {
             </div>
           )}
         </>
-      )}
 
+      )}
+      {tab === "unassigned" && (() => {
+        const assignedIds = new Set(groups.flatMap(g => g.members?.map(m => m.contactId || m.contact?.id) || []));
+        const unassigned = contacts.filter(c => !assignedIds.has(c.id));
+        return unassigned.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-surface-200 py-16 flex flex-col items-center gap-3">
+            <UsersRound size={28} className="text-surface-300" />
+            <p className="font-medium text-ink-500">All contacts are in a group</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-surface-200 shadow-soft overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-surface-100 bg-surface-50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Name</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Phone</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden md:table-cell">Email</th>
+                  <th className="w-24 px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-100">
+                {unassigned.map(c => (
+                  <tr key={c.id} className="hover:bg-surface-50 transition-colors group">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-600 flex-shrink-0">
+                          {c.name[0].toUpperCase()}
+                        </div>
+                        <span className="font-medium text-ink-800">{c.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 text-ink-600">{c.phone}</td>
+                    <td className="px-5 py-3.5 text-ink-500 hidden md:table-cell">{c.email || "—"}</td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                        <button onClick={() => setModal({ type: "editContact", data: c })}
+                          className="p-1.5 rounded-lg text-ink-400 hover:text-brand-600 hover:bg-brand-50 transition-colors">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => setModal({ type: "deleteContact", data: c })}
+                          className="p-1.5 rounded-lg text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
       {/* Modals */}
       {modal?.type === "addContact" && (
         <Modal title="Add Contact" onClose={close}>

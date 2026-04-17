@@ -2,6 +2,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Users, Megaphone, MessageSquare,
   Bot, Package, BarChart3, Settings, Puzzle,
@@ -10,23 +11,80 @@ import {
 import { cn } from "../../lib/utils.js";
 
 const ALL_NAV = [
-  { label: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard, roles: ["owner", "admin", "supervisor", "agent"] },
-  { label: "Inbox",        href: "/inbox",        icon: MessageSquare,   roles: ["owner", "admin", "supervisor", "agent"] },
-  { label: "Contacts",     href: "/contacts",     icon: Users,           roles: ["owner", "admin", "supervisor"] },
-  { label: "Broadcasts",   href: "/broadcasts",   icon: Megaphone,       roles: ["owner", "admin", "supervisor"] },
-  { label: "Templates",    href: "/templates",    icon: FileText,        roles: ["owner", "admin", "supervisor"] },
-  { label: "Chatbot",      href: "/chatbot",      icon: Bot,             roles: ["owner", "admin", "supervisor"] },
-  { label: "Catalog",      href: "/catalog",      icon: Package,         roles: ["owner", "admin"] },
-  { label: "Analytics",    href: "/analytics",    icon: BarChart3,       roles: ["owner", "admin", "supervisor"] },
-  { label: "Integrations", href: "/integrations", icon: Puzzle,          roles: ["owner", "admin"] },
+  { label: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard, roles: ["owner", "admin", "supervisor", "agent"], page: null },
+  { label: "Inbox",        href: "/inbox",        icon: MessageSquare,   roles: ["owner", "admin", "supervisor", "agent"], page: "inbox" },
+  { label: "Contacts",     href: "/contacts",     icon: Users,           roles: ["owner", "admin", "supervisor", "agent"], page: "contacts" },
+  { label: "Broadcasts",   href: "/broadcasts",   icon: Megaphone,       roles: ["owner", "admin", "supervisor", "agent"], page: "broadcasts" },
+  { label: "Templates",    href: "/templates",    icon: FileText,        roles: ["owner", "admin", "supervisor", "agent"], page: "templates" },
+  { label: "Chatbot",      href: "/chatbot",      icon: Bot,             roles: ["owner", "admin", "supervisor", "agent"], page: "chatbot" },
+  { label: "Catalog",      href: "/catalog",      icon: Package,         roles: ["owner", "admin", "supervisor", "agent"], page: "catalog" },
+  { label: "Analytics",    href: "/analytics",    icon: BarChart3,       roles: ["owner", "admin", "supervisor", "agent"], page: "analytics" },
+  { label: "Integrations", href: "/integrations", icon: Puzzle,          roles: ["owner", "admin", "supervisor", "agent"], page: "integrations" },
 ];
 
 
 export default function Sidebar({ user }) {
   const pathname = usePathname();
   const role = user?.role ?? "agent";
+const PERM_DEFAULTS = {
+  supervisor: { inbox: true, contacts: true, broadcasts: true, templates: true, chatbot: true, analytics: false, integrations: false },
+  agent:      { inbox: true, contacts: false, broadcasts: false, templates: false, chatbot: false, analytics: false, integrations: false },
+};
 
-  const NAV = ALL_NAV.filter(item => item.roles.includes(role));
+const [permissions, setPermissions] = useState(null);
+const [hydrated, setHydrated] = useState(false);
+
+useEffect(() => {
+  if (role === "owner" || role === "admin") {
+    setHydrated(true);
+    return;
+  }
+
+  function loadPermissions() {
+    fetch("/api/settings/permissions", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        if (d.permissions) {
+          setPermissions(d.permissions);
+          localStorage.setItem("cb_permissions", JSON.stringify(d.permissions));
+        }
+      })
+      .catch(() => {});
+  }
+
+  // Load from cache instantly to avoid flash
+  try {
+    const cached = localStorage.getItem("cb_permissions");
+    if (cached) setPermissions(JSON.parse(cached));
+  } catch {}
+  setHydrated(true);
+
+  // Fetch fresh from server
+  loadPermissions();
+
+  // Poll every 30 seconds to pick up owner changes
+  const interval = setInterval(loadPermissions, 30000);
+
+  // Also listen for same-tab updates
+  window.addEventListener("permissions-updated", loadPermissions);
+
+  return () => {
+    clearInterval(interval);
+    window.removeEventListener("permissions-updated", loadPermissions);
+  };
+}, [role, pathname]);
+
+
+  const NAV = ALL_NAV.filter(item => {
+    if (!item.roles.includes(role)) return false;
+    if (role === "owner" || role === "admin") return true;
+    if (!hydrated) return false;
+    if (!item.page) return true;
+    const perms = permissions || PERM_DEFAULTS;
+    return perms[role]?.[item.page] !== false;
+  });
+
+
 
   const roleBadge = {
     owner:      { label: "Owner",      color: "bg-brand-100 text-brand-700" },

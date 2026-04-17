@@ -62,7 +62,7 @@ export async function POST(req) {
     if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 404 });
     const workspace = await db.workspace.findUnique({ where: { id: workspaceId } });
 
-    const { name, message, status, contactIds, scheduledAt, chatbotIds, templateId } = await req.json();
+    const { name, message, status, contactIds, scheduledAt, chatbotIds, templateId, mediaUrl } = await req.json();
     if (!name || !message) return NextResponse.json({ error: "Name and message required" }, { status: 400 });
 
     const hasBots = Array.isArray(chatbotIds) && chatbotIds.length > 0;
@@ -72,6 +72,7 @@ export async function POST(req) {
         workspaceId: workspace.id,
         name,
         message,
+        mediaUrl: mediaUrl || null,
         status: status ? status.toUpperCase() : "DRAFT",
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
         chatbotIds: hasBots ? chatbotIds : [],
@@ -164,13 +165,13 @@ const result = await sendWhatsApp(contact.phone, personalizedMessage, broadcast.
           },
         });
       }
-
       await db.message.create({
         data: {
           conversationId: conv.id,
           direction: "OUTBOUND",
-          type: "TEXT",
+          type: broadcast.mediaUrl ? "IMAGE" : "TEXT",
           content: personalizedMessage,
+          mediaUrl: broadcast.mediaUrl || null,
           status: "SENT",
           sentAt: new Date(),
           waMessageId: result.messageId || null,

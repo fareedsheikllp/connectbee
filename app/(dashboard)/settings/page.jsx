@@ -41,6 +41,11 @@ export default function SettingsPage() {
   const [savingMember, setSavingMember] = useState(false);
   const [savingChannel, setSavingChannel] = useState(false);
   const { data: session } = useSession();
+  const [permissions, setPermissions] = useState({
+    supervisor: { inbox: true, contacts: true, broadcasts: true, templates: true, analytics: true, integrations: false },
+    agent:      { inbox: true, contacts: false, broadcasts: false, templates: false, analytics: false, integrations: false },
+  });
+  const [savingPermissions, setSavingPermissions] = useState(false);
 
   // TABS defined inside component so session is available
   const isAgent = session?.user?.role === "agent";
@@ -49,6 +54,7 @@ export default function SettingsPage() {
     { id: "notifications", label: "Notifications", icon: Bell    },
     { id: "security",      label: "Security",      icon: Shield  },
     ...(!isAgent ? [{ id: "team", label: "Team", icon: Users }] : []),
+    ...(session?.user?.role === "owner" ? [{ id: "permissions", label: "Permissions", icon: Shield }] : []),
   ];
 
   useEffect(() => { fetchSettings(); }, []);
@@ -69,6 +75,9 @@ export default function SettingsPage() {
         setConnected(data.whatsapp.verified || false);
       }
       if (data.profile) setProfile({ name: data.profile.name || "", email: data.profile.email || "" });
+      const permRes = await fetch("/api/settings/permissions");
+      const permData = await permRes.json();
+      if (permData.permissions) setPermissions(permData.permissions);
     } catch { toast.error("Failed to load settings"); }
     finally { setLoading(false); }
   }
@@ -566,6 +575,61 @@ export default function SettingsPage() {
                 )}
               </div>
 
+            </div>
+          )}
+          {tab === "permissions" && (
+            <div className="card p-6 space-y-6">
+              <div>
+                <h3 className="font-bold text-ink-800">Role Permissions</h3>
+                <p className="text-xs text-ink-400 mt-0.5">Control which pages each role can access. This does not change what they can do inside a page.</p>
+              </div>
+              {["supervisor", "agent"].map(role => (
+                <div key={role} className="space-y-3">
+                  <p className="text-sm font-bold text-ink-700 capitalize">{role}</p>
+                  <div className="rounded-xl border border-surface-200 overflow-hidden">
+                    {["inbox", "contacts", "broadcasts", "templates", "chatbot","catalog", "analytics", "integrations"].map((page, i, arr) => (
+                      <div key={page} className={`flex items-center justify-between px-4 py-3 ${i !== arr.length - 1 ? "border-b border-surface-100" : ""}`}>
+                        <p className="text-sm text-ink-700 capitalize">{page}</p>
+                        <label className="relative inline-flex cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={permissions[role]?.[page] ?? false}
+                            onChange={e => setPermissions(prev => ({
+                              ...prev,
+                              [role]: { ...prev[role], [page]: e.target.checked }
+                            }))}
+                            className="sr-only peer"
+                          />
+                          <div className="w-10 h-5 bg-surface-200 peer-checked:bg-brand-500 rounded-full transition-all peer-checked:after:translate-x-5 after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:shadow after:transition-all" />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={async () => {
+                  setSavingPermissions(true);
+                  try {
+                    const res = await fetch("/api/settings/permissions", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ permissions }),
+                    });
+                    if (!res.ok) { toast.error("Failed to save"); return; }
+                    toast.success("Permissions saved!");
+                    localStorage.removeItem("cb_permissions");
+                    window.dispatchEvent(new Event("permissions-updated"));
+
+                  } catch { toast.error("Something went wrong"); }
+                  finally { setSavingPermissions(false); }
+                }}
+                disabled={savingPermissions}
+                className="btn-primary gap-2"
+              >
+                {savingPermissions ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                Save Permissions
+              </button>
             </div>
           )}
 

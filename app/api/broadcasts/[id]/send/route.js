@@ -130,13 +130,13 @@ export async function POST(req, context) {
                 },
               });
             }
-
             await db.message.create({
               data: {
                 conversationId: conv.id,
                 direction: "OUTBOUND",
-                type: "TEXT",
+                type: broadcast.mediaUrl ? "IMAGE" : "TEXT",
                 content: personalizedMessage,
+                mediaUrl: broadcast.mediaUrl || null,
                 status: "SENT",
                 isInternal: false,
                 sentAt: new Date(),

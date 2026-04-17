@@ -58,7 +58,6 @@ function AgentCard({ agent }) {
 
 // ─── Channel card ─────────────────────────────────────────────────
 function ChannelCard({ channel }) {
-  const resolveRate = channel.total > 0 ? Math.round((channel.resolved / channel.total) * 100) : 0;
   return (
     <Card3D className="p-5">
       <div className="flex items-center gap-3 mb-4">
@@ -78,7 +77,6 @@ function ChannelCard({ channel }) {
       <div className="space-y-2">
         {[
           { label: "Open",     value: channel.open,     color: "#38bdf8" },
-          { label: "Resolved", value: channel.resolved, color: "#22c55e" },
           { label: "Bot",      value: channel.bot,      color: "#8b5cf6" },
         ].map(s => (
           <div key={s.label}>
@@ -864,7 +862,7 @@ export default function AnalyticsPage() {
                   <Card3D className="overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-50 bg-gradient-to-r from-gray-50 to-white">
                       <h2 className="text-sm font-bold text-gray-800">Agent Leaderboard</h2>
-                      <p className="text-xs text-gray-400 mt-0.5">Ranked by conversations resolved</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Ranked by total conversations</p>
                     </div>
                     <div className="divide-y divide-gray-50">
                       {[...(BR.agentBreakdown || [])]

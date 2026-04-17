@@ -589,6 +589,9 @@ export default function ContactsPage() {
   const [modal, setModal] = useState(null);
   const close = () => setModal(null);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [contactsPage, setContactsPage] = useState(1);
+  const [unassignedPage, setUnassignedPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const toggleSelect = (id) =>
     setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -708,7 +711,33 @@ export default function ContactsPage() {
       toast.error(e.message);
     }
   };
-
+  async function removeChannelFromContact(contact, channelId) {
+    const inGroupWithChannel = groups.some(g =>
+      g.channel?.id === channelId &&
+      g.members?.some(m => (m.contactId || m.contact?.id) === contact.id)
+    );
+    if (inGroupWithChannel) {
+      toast.error("This channel is assigned via a group. Remove the contact from that group first.");
+      return;
+    }
+    const convs = (contact.conversations || []).filter(cv =>
+      cv.channel?.id === channelId || cv.conversationChannels?.some(cc => cc.channel.id === channelId)
+    );
+    if (convs.length === 0) return;
+    await Promise.all(convs.map(cv => {
+      const currentIds = [
+        ...(cv.conversationChannels?.map(cc => cc.channel.id) || []),
+        ...(cv.channel ? [cv.channel.id] : []),
+      ].filter((id, i, arr) => arr.indexOf(id) === i);
+      return fetch(`/api/inbox/${cv.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelIds: currentIds.filter(id => id !== channelId) }),
+      });
+    }));
+    toast.success("Channel removed");
+    fetchAll();
+  }
   return (
     <div className="max-w-5xl mx-auto space-y-6">
 
@@ -802,9 +831,10 @@ export default function ContactsPage() {
           )}
           <div className="relative">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-300 pointer-events-none" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)}
+            <input value={search}
               placeholder="Search by name, phone or email..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-surface-200 bg-white text-sm text-ink-800 placeholder-ink-300 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all" />
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-surface-200 bg-white text-sm text-ink-800 placeholder-ink-300 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+              onChange={(e) => { setSearch(e.target.value); setContactsPage(1); }} />
           </div>
 
           {loading ? (
@@ -830,6 +860,7 @@ export default function ContactsPage() {
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-surface-200 shadow-soft overflow-hidden">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-surface-100 bg-surface-50">
@@ -850,12 +881,14 @@ export default function ContactsPage() {
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Phone</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden md:table-cell">Email</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden md:table-cell">Company</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden md:table-cell">Channel</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden lg:table-cell">Notes</th>
+
                     <th className="w-24 px-5 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-100">
-                  {filtered.map((c) => (
+                  {filtered.slice((contactsPage - 1) * PAGE_SIZE, contactsPage * PAGE_SIZE).map((c) => (
                       <tr key={c.id} className={`hover:bg-surface-50 transition-colors group ${selectedIds.includes(c.id) ? "bg-brand-50" : ""}`}>
                         <td className="px-5 py-3.5 w-10">
                           <div
@@ -885,7 +918,39 @@ export default function ContactsPage() {
                       </td>
                       <td className="px-5 py-3.5 text-ink-600">{c.phone}</td>
                       <td className="px-5 py-3.5 text-ink-500 hidden md:table-cell">{c.email || "—"}</td>
+
                       <td className="px-5 py-3.5 text-ink-500 hidden md:table-cell">{c.company || "—"}</td>
+                      <td className="px-5 py-3.5 hidden md:table-cell">
+                        {(() => {
+                          const fromGroups = groups
+                            .filter(g => g.members?.some(m => (m.contactId || m.contact?.id) === c.id) && g.channel)
+                            .map(g => g.channel);
+                          const fromConversations = (c.conversations || []).flatMap(cv => {
+                            const direct = cv.channel ? [cv.channel] : [];
+                            const joined = (cv.conversationChannels || []).map(cc => cc.channel);
+                            return [...direct, ...joined];
+                          }).filter(Boolean);
+                          const channels = [...fromGroups, ...fromConversations]
+                            .filter((ch, i, arr) => arr.findIndex(x => x.id === ch.id) === i);
+                          return channels.length === 0 ? (
+                            <span className="text-ink-300">—</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                                {channels.map(ch => (
+                                <span key={ch.id} className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                                  style={{ backgroundColor: ch.color + "20", color: ch.color }}>
+                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: ch.color }} />
+                                  {ch.name}
+                                  <button onClick={() => removeChannelFromContact(c, ch.id)}
+                                    className="ml-0.5 hover:opacity-60 transition-opacity" title="Remove channel">
+                                    <X size={9} />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td className="px-5 py-3.5 text-ink-400 text-xs hidden lg:table-cell">
                         <span className="block max-w-[160px] truncate">{c.notes || "—"}</span>
                       </td>
@@ -913,12 +978,48 @@ export default function ContactsPage() {
                       </td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+              </tbody>
+            </table>
+          </div>
+          {/* Contacts pagination */}
+          {(() => {
+            const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+            if (totalPages <= 1) return null;
+            return (
+              <div className="flex items-center justify-between px-5 py-3 border-t border-surface-100 bg-surface-50">
+                <p className="text-xs text-ink-400">
+                  Showing {(contactsPage - 1) * PAGE_SIZE + 1}–{Math.min(contactsPage * PAGE_SIZE, filtered.length)} of {filtered.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button disabled={contactsPage === 1} onClick={() => setContactsPage(p => p - 1)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-surface-200 text-ink-600 hover:bg-surface-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    Previous
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - contactsPage) <= 1).reduce((acc, p, i, arr) => {
+                    if (i > 0 && p - arr[i - 1] > 1) acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, []).map((p, i) => p === "..." ? (
+                    <span key={`ellipsis-${i}`} className="px-2 text-ink-300 text-xs">…</span>
+                  ) : (
+                    <button key={p} onClick={() => setContactsPage(p)}
+                      className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${contactsPage === p ? "bg-brand-500 text-white" : "border border-surface-200 text-ink-600 hover:bg-surface-50"}`}>
+                      {p}
+                    </button>
+                  ))}
+                  <button disabled={contactsPage === totalPages} onClick={() => setContactsPage(p => p + 1)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-surface-200 text-ink-600 hover:bg-surface-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    Next
+                  </button>
+                </div>
+              </div>
+            );
+        })()}
         </div>
       )}
+      </div>
+    )}
+
 
       {/* Groups Tab */}
       {tab === "groups" && (
@@ -966,17 +1067,19 @@ export default function ContactsPage() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-surface-200 shadow-soft overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-100 bg-surface-50">
                   <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Name</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Phone</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden md:table-cell">Email</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden md:table-cell">Channel</th>
                   <th className="w-24 px-5 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-100">
-                {unassigned.map(c => (
+                {unassigned.slice((unassignedPage - 1) * PAGE_SIZE, unassignedPage * PAGE_SIZE).map(c => (
                   <tr key={c.id} className="hover:bg-surface-50 transition-colors group">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
@@ -988,6 +1091,28 @@ export default function ContactsPage() {
                     </td>
                     <td className="px-5 py-3.5 text-ink-600">{c.phone}</td>
                     <td className="px-5 py-3.5 text-ink-500 hidden md:table-cell">{c.email || "—"}</td>
+                    <td className="px-5 py-3.5 hidden md:table-cell">
+                      {(() => {
+                        const fromConversations = (c.conversations || []).flatMap(cv => {
+                          const direct = cv.channel ? [cv.channel] : [];
+                          const joined = (cv.conversationChannels || []).map(cc => cc.channel);
+                          return [...direct, ...joined];
+                        }).filter(Boolean).filter((ch, i, arr) => arr.findIndex(x => x.id === ch.id) === i);
+                        return fromConversations.length === 0 ? (
+                          <span className="text-ink-300">—</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {fromConversations.map(ch => (
+                              <span key={ch.id} className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                                style={{ backgroundColor: ch.color + "20", color: ch.color }}>
+                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: ch.color }} />
+                                {ch.name}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
                         <button onClick={() => setModal({ type: "editContact", data: c })}
@@ -1004,6 +1129,40 @@ export default function ContactsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
+            {(() => {
+              const totalPages = Math.ceil(unassigned.length / PAGE_SIZE);
+              if (totalPages <= 1) return null;
+              return (
+                <div className="flex items-center justify-between px-5 py-3 border-t border-surface-100 bg-surface-50">
+                  <p className="text-xs text-ink-400">
+                    Showing {(unassignedPage - 1) * PAGE_SIZE + 1}–{Math.min(unassignedPage * PAGE_SIZE, unassigned.length)} of {unassigned.length}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <button disabled={unassignedPage === 1} onClick={() => setUnassignedPage(p => p - 1)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium border border-surface-200 text-ink-600 hover:bg-surface-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                      Previous
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - unassignedPage) <= 1).reduce((acc, p, i, arr) => {
+                      if (i > 0 && p - arr[i - 1] > 1) acc.push("...");
+                      acc.push(p);
+                      return acc;
+                    }, []).map((p, i) => p === "..." ? (
+                      <span key={`ellipsis-${i}`} className="px-2 text-ink-300 text-xs">…</span>
+                    ) : (
+                      <button key={p} onClick={() => setUnassignedPage(p)}
+                        className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${unassignedPage === p ? "bg-brand-500 text-white" : "border border-surface-200 text-ink-600 hover:bg-surface-50"}`}>
+                        {p}
+                      </button>
+                    ))}
+                    <button disabled={unassignedPage === totalPages} onClick={() => setUnassignedPage(p => p + 1)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium border border-surface-200 text-ink-600 hover:bg-surface-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                      Next
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         );
       })()}

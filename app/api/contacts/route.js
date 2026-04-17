@@ -24,6 +24,17 @@ export async function GET() {
     const contacts = await db.contact.findMany({
       where: { workspaceId: await getWorkspaceId(session) },
       orderBy: { createdAt: "desc" },
+      include: {
+        conversations: {
+          include: {
+            channel: { select: { id: true, name: true, color: true } },
+            conversationChannels: {
+              include: { channel: { select: { id: true, name: true, color: true } } }
+            }
+          },
+          take: 10,
+        }
+      }
     });
 
     return NextResponse.json(contacts);

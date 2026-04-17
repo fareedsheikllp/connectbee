@@ -860,28 +860,25 @@ async function updateConv(patch, msg) {
     if (selectedConvs.size === 0) return;
     setBulkAssigning(true);
     try {
-    await Promise.all([...selectedConvs].map(async id => {
-      const res = await fetch(`/api/inbox/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...(Array.isArray(bulkChannel) && bulkChannel.length > 0 ? { addChannelIds: bulkChannel } : {}),
-        }),
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        if (errData.groupControlled) {
-          toast.error(errData.error, { duration: 6000 });
+        if (Array.isArray(bulkChannel) && bulkChannel.length > 0) {
+          await Promise.all([...selectedConvs].map(id =>
+            fetch(`/api/inbox/${id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ addChannelIds: bulkChannel }),
+            })
+          ));
         }
-      }
-    }));
-      if (Object.keys(bulkAgents).length > 0) {
+      const agentEntries = channels
+        .filter(ch => bulkAgents[ch.id] && bulkAgents[ch.id] !== "")
+        .map(ch => [ch.id, bulkAgents[ch.id] === "UNASSIGN" ? null : bulkAgents[ch.id]]);
+      if (agentEntries.length > 0) {
+        const agentPayload = Object.fromEntries(agentEntries);
         await Promise.all([...selectedConvs].map(convId =>
-          Promise.all(Object.entries(bulkAgents).map(([channelId, memberId]) =>
-          fetch(`/api/inbox/${convId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelAgents: { [channelId]: memberId || null } }) })
-          ))
+          fetch(`/api/inbox/${convId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelAgents: agentPayload }) })
         ));
       }
+
       toast.success(`Assigned ${selectedConvs.size} conversations`);
       setSelectedConvs(new Set());
       setBulkChannel("");
@@ -1015,39 +1012,32 @@ async function updateConv(patch, msg) {
               ))}
             </div>
             <div className="space-y-2">
-              {(() => {
-                const selectedChannelIds = Array.isArray(bulkChannel) ? bulkChannel : (bulkChannel && bulkChannel !== "UNASSIGN" ? [bulkChannel] : []);
-                if (selectedChannelIds.length === 0) return (
-                  <p className="text-[11px] text-slate-400 italic">Select a channel above to assign agents</p>
-                );
-                return channels
-                  .filter(ch => selectedChannelIds.includes(ch.id))
-                  .map(ch => {
-                    const chMembers = members.filter(m => m.channels?.some(cm => cm.channelId === ch.id));
-                    return (
-                      <div key={ch.id}>
-                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1"
-                          style={{ color: ch.color }}>
-                          <span className="inline-block w-1.5 h-1.5 rounded-full mr-1" style={{ backgroundColor: ch.color }} />
-                          {ch.name}
-                        </p>
-                        <select
-                          value={bulkAgents[ch.id] || ""}
-                          onChange={e => setBulkAgents(prev => ({ ...prev, [ch.id]: e.target.value }))}
-                          className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
-                        >
-                          <option value="">Unassign Agent</option>
-                          {chMembers.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
-                        </select>
-                      </div>
-                    );
-                  });
-              })()}
+            {channels.map(ch => {
+              const chMembers = members.filter(m => m.channels?.some(cm => cm.channelId === ch.id));
+              return (
+                <div key={ch.id}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                    style={{ color: ch.color }}>
+                    <span className="inline-block w-1.5 h-1.5 rounded-full mr-1" style={{ backgroundColor: ch.color }} />
+                    {ch.name}
+                  </p>
+                  <select
+                    value={bulkAgents[ch.id] || ""}
+                    onChange={e => setBulkAgents(prev => ({ ...prev, [ch.id]: e.target.value }))}
+                    className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+                  >
+                  <option value="" disabled>— Select agent —</option>
+                  {chMembers.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+                  <option value="UNASSIGN">Unassign agent</option>
+                  </select>
+                </div>
+              );
+            })}
             </div>
             <div className="flex gap-1.5">
               <button
                 onClick={bulkAssign}
-                disabled={bulkAssigning || !Array.isArray(bulkChannel) || bulkChannel.length === 0}
+                disabled={bulkAssigning}
                 className="flex-1 h-7 bg-brand-500 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-1"
               >
                 {bulkAssigning ? <Loader2 size={11} className="animate-spin" /> : <Users size={11} />}
@@ -1329,16 +1319,18 @@ async function updateConv(patch, msg) {
                                     <select
                                       value={cc.assignedMember?.id || ""}
                                       onChange={e => {
+                                        if (!e.target.value) return;
                                         updateConv({
-                                          channelAgents: { [cc.channel.id]: e.target.value || null }
-                                        }, e.target.value ? "Assigned!" : "Unassigned");
+                                          channelAgents: { [cc.channel.id]: e.target.value === "UNASSIGN" ? null : e.target.value }
+                                        }, e.target.value === "UNASSIGN" ? "Unassigned" : "Assigned!");
                                       }}
                                       className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
                                     >
-                                      <option value="">Unassigned</option>
+                                      <option value="" disabled>— Select agent —</option>
                                       {dropdownMembers.map(m => (
                                         <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
                                       ))}
+                                      <option value="UNASSIGN">Unassign agent</option>
                                     </select>
                                   </div>
                                 );
@@ -1443,7 +1435,13 @@ async function updateConv(patch, msg) {
                         )}
                         <div className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[72%] rounded-2xl px-4 py-2.5 shadow-sm ${isOut ? "bg-brand-100 rounded-br-sm" : "bg-white rounded-bl-sm border border-slate-100"}`}>
-                          <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                          {msg.mediaUrl && (
+                            <img src={msg.mediaUrl} alt="Media" className="max-w-full rounded-xl mb-2 max-h-64 object-cover" />
+                          )}
+                          {msg.content && (
+                            <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                          )}
+
                           <div className={`flex items-center gap-1 mt-1.5 ${isOut ? "justify-end" : "justify-start"}`}>
                             {isOut && <span className="text-[10px] text-slate-400">Reply STOP to unsubscribe ·</span>}
                             <span className="text-[10px] text-slate-400">

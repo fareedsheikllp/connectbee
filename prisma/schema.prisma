@@ -106,6 +106,7 @@ model Workspace {
   cannedResponses CannedResponse[]
   members  WorkspaceMember[]
   channels Channel[]
+  automations Automation[]
 }
 
 enum Plan {
@@ -347,7 +348,7 @@ model CannedResponse {
   title       String   // e.g. "Refund Policy"
   content     String
   createdAt   DateTime @default(now())
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }
 enum MessageDirection {
   INBOUND
@@ -429,7 +430,30 @@ model Chatbot {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+model Automation {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  name        String
+  enabled     Boolean  @default(true)
+  trigger     String   // "NO_AGENT_REPLY" | "NO_CUSTOMER_REPLY" | "CONVERSATION_OPEN" | "NEW_CONVERSATION" | "KEYWORD"
+  delayHours  Int?     // for time-based triggers
+  keyword     String?  // for keyword trigger
+  channelId   String?  // optional filter
+  conditions  Json?    // { unassignedOnly: bool, priority: string }
+  actions     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  logs        AutomationLog[]
+}
 
+model AutomationLog {
+  id             String     @id @default(cuid())
+  automationId   String
+  automation     Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  conversationId String
+  firedAt        DateTime   @default(now())
+}
 // ─── CATALOG ───────────────────────────────────────────────────────
 
 model Product {

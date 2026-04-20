@@ -24,7 +24,7 @@ export async function POST(req) {
 
         let where = {
         workspaceId: auto.workspaceId,
-        status: "OPEN",
+        status: { in: ["OPEN", "BOT"] },
         };
 
       if (auto.channelId) {
@@ -54,6 +54,8 @@ export async function POST(req) {
         });
         if (alreadyFired) continue;
 
+        if (conv.contact.subscribed === false) continue;
+
         const lastMsg = conv.messages[0];
         if (!lastMsg) continue;
 
@@ -68,11 +70,12 @@ export async function POST(req) {
         for (const action of actions) {
           if (action.type === "SEND_MESSAGE" && action.value) {
             try {
-              await sendWhatsApp({
-                workspace: auto.workspace,
-                to: conv.contact.phone,
-                message: action.value,
-              });
+              const wsCreds = auto.workspace.twilioAccountSid ? {
+                accountSid: auto.workspace.twilioAccountSid,
+                authToken: auto.workspace.twilioAuthToken,
+                phoneNumber: auto.workspace.twilioPhoneNumber,
+                } : null;
+                await sendWhatsApp(conv.contact.phone, action.value, null, null, wsCreds);
               await db.message.create({
                 data: {
                   conversationId: conv.id,

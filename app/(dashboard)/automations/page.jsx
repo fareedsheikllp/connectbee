@@ -8,10 +8,8 @@ import toast from "react-hot-toast";
 
 const TRIGGERS = [
   { value: "NO_AGENT_REPLY", label: "No agent reply after...", timed: true },
-  { value: "NO_CUSTOMER_REPLY", label: "No customer reply after...", timed: true },
   { value: "CONVERSATION_OPEN", label: "Conversation open for...", timed: true },
   { value: "NEW_CONVERSATION", label: "New conversation created", timed: false },
-  { value: "KEYWORD", label: "Message contains keyword", timed: false },
 ];
 
 const ACTION_TYPES = [
@@ -21,7 +19,7 @@ const ACTION_TYPES = [
   { value: "ADD_LABEL", label: "Add label" },
 ];
 
-const STATUS_OPTIONS = ["OPEN", "RESOLVED", "BOT"];
+const STATUS_OPTIONS = ["OPEN", "BOT"];
 const PRIORITY_OPTIONS = ["NONE", "LOW", "MEDIUM", "HIGH", "URGENT"];
 const LABEL_OPTIONS = ["vip", "billing", "bug", "sales", "support", "followup", "onboarding"];
 
@@ -173,13 +171,15 @@ function AutomationForm({ initial, channels, onSubmit, loading, onClose }) {
           <label className="block text-xs font-medium text-slate-600">Delay</label>
           <div className="flex items-center gap-2">
             <input
-              type="number"
-              min={1}
-              value={delayHours}
-              onChange={e => setDelayHours(e.target.value)}
+                type="number"
+                min={1}
+                max={23}
+                value={delayHours}
+                onChange={e => setDelayHours(Math.min(23, parseInt(e.target.value) || 1))}
               className="w-24 px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-brand-400 transition-all"
             />
             <span className="text-sm text-slate-500">hours</span>
+            <span className="text-xs text-amber-500">Max 23h (WhatsApp 24h window)</span>
           </div>
         </div>
       )}
@@ -451,7 +451,7 @@ export default function AutomationsPage() {
       <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-start gap-3">
         <AlertCircle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-amber-700 leading-relaxed">
-          Time-based automations run every 30 minutes via cron job. Keyword and new conversation automations fire instantly when a message is received.
+        Automations only send messages within WhatsApp's 24-hour window. Keep delays under 24 hours for message actions. Status and label changes work anytime. For longer follow-ups, use broadcasts with approved templates.
         </p>
       </div>
 

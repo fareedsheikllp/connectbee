@@ -62,8 +62,6 @@ export async function POST(req) {
         // Check if last message is old enough
         if (new Date(lastMsg.sentAt) > cutoff) continue;
 
-        // Check trigger condition
-        if (auto.trigger === "NO_CUSTOMER_REPLY" && lastMsg.direction !== "OUTBOUND") continue;
 
         // Execute actions
         const actions = Array.isArray(auto.actions) ? auto.actions : [];

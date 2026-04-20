@@ -22,11 +22,10 @@ export async function POST(req) {
 
       const cutoff = new Date(Date.now() - auto.delayHours * 3600000);
 
-      let where = {
+        let where = {
         workspaceId: auto.workspaceId,
         status: "OPEN",
-        updatedAt: { lte: cutoff },
-      };
+        };
 
       if (auto.channelId) {
         where.conversationChannels = { some: { channelId: auto.channelId } };
@@ -58,8 +57,10 @@ export async function POST(req) {
         const lastMsg = conv.messages[0];
         if (!lastMsg) continue;
 
+        // Check if last message is old enough
+        if (new Date(lastMsg.sentAt) > cutoff) continue;
+
         // Check trigger condition
-        if (auto.trigger === "NO_AGENT_REPLY" && lastMsg.direction !== "INBOUND") continue;
         if (auto.trigger === "NO_CUSTOMER_REPLY" && lastMsg.direction !== "OUTBOUND") continue;
 
         // Execute actions

@@ -205,7 +205,7 @@ function AutomationForm({ initial, channels, onSubmit, loading, onClose }) {
           onChange={e => setChannelId(e.target.value)}
           className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:border-brand-400 transition-all"
         >
-          <option value="">All channels</option>
+          <option value="">Everyone (all channels + unassigned)</option>
           {channels.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
         </select>
       </div>

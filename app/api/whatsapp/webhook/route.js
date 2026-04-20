@@ -96,6 +96,46 @@ export async function POST(req) {
       });
 await incrementConversationsUsed(ws.id);
 
+// Fire NEW_CONVERSATION automations
+try {
+  const newConvAutomations = await db.automation.findMany({
+    where: { workspaceId: ws.id, enabled: true, trigger: "NEW_CONVERSATION" },
+    include: { workspace: true },
+  });
+  for (const auto of newConvAutomations) {
+    if (contact.subscribed === false) continue;
+    const alreadyFired = await db.automationLog.findFirst({
+      where: { automationId: auto.id, contactId: contact.id },
+    });
+    if (alreadyFired) continue;
+    const autoCreds = auto.workspace.twilioAccountSid ? {
+      accountSid: auto.workspace.twilioAccountSid,
+      authToken: auto.workspace.twilioAuthToken,
+      phoneNumber: auto.workspace.twilioPhoneNumber,
+    } : null;
+    const actions = Array.isArray(auto.actions) ? auto.actions : [];
+    for (const action of actions) {
+      if (action.type === "SEND_MESSAGE" && action.value) {
+        await sendWhatsApp(contact.phone, action.value, null, null, autoCreds);
+        await db.message.create({
+          data: {
+            conversationId: conversation.id,
+            direction: "OUTBOUND",
+            type: "TEXT",
+            content: action.value,
+            status: "SENT",
+          },
+        });
+      }
+    }
+    await db.automationLog.create({
+      data: { automationId: auto.id, contactId: contact.id },
+    });
+  }
+} catch (e) {
+  console.error("NEW_CONVERSATION automation error:", e);
+}
+
 // Auto-assign channels from contact's groups
 try {
   const contactGroups = await db.contactGroupMember.findMany({

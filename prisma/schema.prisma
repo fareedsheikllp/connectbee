@@ -451,7 +451,8 @@ model AutomationLog {
   id             String     @id @default(cuid())
   automationId   String
   automation     Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
-  conversationId String
+  conversationId String?
+  contactId      String?
   firedAt        DateTime   @default(now())
 }
 // ─── CATALOG ───────────────────────────────────────────────────────

@@ -51,7 +51,7 @@ export async function POST(req) {
       for (const conv of conversations) {
         // Check if already fired for this conversation
         const alreadyFired = await db.automationLog.findFirst({
-          where: { automationId: auto.id, conversationId: conv.id },
+        where: { automationId: auto.id, contactId: conv.contact.id },
         });
         if (alreadyFired) continue;
 
@@ -108,7 +108,7 @@ export async function POST(req) {
 
         // Log it so it doesn't fire again
         await db.automationLog.create({
-          data: { automationId: auto.id, conversationId: conv.id },
+        data: { automationId: auto.id, contactId: conv.contact.id },
         });
         fired++;
       }

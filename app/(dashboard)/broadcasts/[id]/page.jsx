@@ -167,7 +167,7 @@ export default function BroadcastDetailPage() {
     if (data.success) {
       load(); // Refresh to show updated statuses
     } else {
-      alert(data.error || "Failed to send broadcast");
+      alert(data.error || "Failed to send campaign");
     }
   }
 
@@ -194,7 +194,7 @@ export default function BroadcastDetailPage() {
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this broadcast permanently?")) return;
+    if (!confirm("Delete this campaign permanently?")) return;
     setDeleting(true);
     await fetch(`/api/broadcasts/${id}`, { method: "DELETE" });
     router.push("/broadcasts");
@@ -240,7 +240,7 @@ export default function BroadcastDetailPage() {
 
   if (!broadcast || broadcast.error) return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
-      <p className="text-gray-400">Broadcast not found</p>
+      <p className="text-gray-400">Campaign not found</p>
       <button onClick={() => router.push("/broadcasts")} className="text-emerald-600 hover:underline">← Back</button>
     </div>
   );
@@ -355,7 +355,7 @@ export default function BroadcastDetailPage() {
           <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
             <AlertCircle size={16} className="text-amber-500 flex-shrink-0" />
             <p className="text-sm text-amber-700">
-              This draft has no recipients. Go back to the broadcasts list and add contacts before sending.
+              This draft has no recipients. Go back to the campaigns list and add contacts before sending.
             </p>
           </div>
         </div>
@@ -611,7 +611,7 @@ export default function BroadcastDetailPage() {
             {total === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-100 p-20 text-center shadow-sm">
                 <BarChart2 size={32} className="text-gray-200 mx-auto mb-3" />
-                <p className="text-sm text-gray-400">No data yet — send this broadcast to see analytics</p>
+                <p className="text-sm text-gray-400">No data yet — send this campaign to see analytics</p>
               </div>
             ) : (
               <>
@@ -725,7 +725,7 @@ export default function BroadcastDetailPage() {
                         icon: BarChart2, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100",
                         title: deliveryRate >= 80 ? "Strong delivery rate!" : "Room to improve",
                         body: deliveryRate >= 80
-                          ? "Your broadcast performed well. Keep your contact list clean for continued success."
+                          ? "Your campaign performed well. Keep your contact list clean for continued success."
                           : "Clean up invalid numbers and unsubscribed contacts to improve your delivery rate.",
                         cta: null,
                       },
@@ -762,7 +762,7 @@ export default function BroadcastDetailPage() {
               <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-5">
                 <Send size={24} className="text-emerald-500" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Send Broadcast Now?</h3>
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Send Campaign Now?</h3>
               <p className="text-sm text-gray-500 text-center leading-relaxed mb-6">
                 This will send <span className="font-semibold text-gray-800">"{broadcast.name}"</span> to{" "}
                 <span className="font-bold text-emerald-600">{total} contact{total !== 1 ? "s" : ""}</span> immediately via WhatsApp. This cannot be undone.
@@ -869,7 +869,7 @@ export default function BroadcastDetailPage() {
                 <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center">
                   <Edit2 size={15} className="text-emerald-600" />
                 </div>
-                <h3 className="font-bold text-gray-900">Edit Broadcast</h3>
+                <h3 className="font-bold text-gray-900">Edit Campaign</h3>
               </div>
               <button onClick={() => setEditModal(false)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400">
                 <XCircle size={16} />

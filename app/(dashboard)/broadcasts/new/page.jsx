@@ -251,7 +251,7 @@ useEffect(() => {
           <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-400"><X size={15} /></button>
         </div>
         <p className="px-6 py-3 text-xs text-gray-500 border-b border-gray-50 bg-gray-50/50">
-          When contacts reply to this broadcast, the selected chatbot will automatically respond.
+          When contacts reply to this campaign, the selected chatbot will automatically respond.
         </p>
         <div className="overflow-y-auto flex-1 p-4 space-y-2">
           <button
@@ -431,7 +431,7 @@ async function handleSubmit() {
               <ArrowLeft size={17} />
             </button>
             <div>
-              <h1 className="text-base font-bold text-gray-900">New Broadcast</h1>
+              <h1 className="text-base font-bold text-gray-900">New Campaign</h1>
               <p className="text-xs text-gray-400">Send a message campaign to your contacts</p>
             </div>
           </div>
@@ -631,7 +631,7 @@ async function handleSubmit() {
             <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
               <div>
                 <h2 className="text-base font-bold text-gray-900 mb-0.5">Choose Audience</h2>
-                <p className="text-sm text-gray-400">Select groups or individual contacts to receive this broadcast</p>
+                <p className="text-sm text-gray-400">Select groups or individual contacts to receive this Campaign</p>
               </div>
 
               {/* Groups */}
@@ -825,7 +825,7 @@ async function handleSubmit() {
                 ) : (
                   <Send size={15} />
                 )}
-                {saving ? "Sending..." : sendNow ? `Send to ${selectedIds.length} contacts` : "Schedule Broadcast"}
+                {saving ? "Sending..." : sendNow ? `Send to ${selectedIds.length} contacts` : "Schedule Campaign"}
               </button>
             </div>
           </div>

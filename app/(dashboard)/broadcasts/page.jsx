@@ -68,7 +68,7 @@ export default function BroadcastsPage() {
               <Radio size={16} className="text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-900 tracking-tight">Broadcasts</h1>
+              <h1 className="text-base font-bold text-gray-900 tracking-tight">Campaigns</h1>
               <p className="text-xs text-gray-400">{broadcasts.length} campaign{broadcasts.length !== 1 ? "s" : ""}</p>
             </div>
           </div>
@@ -87,7 +87,7 @@ export default function BroadcastsPage() {
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-all shadow-sm shadow-emerald-200 whitespace-nowrap"
             >
               <Plus size={15} />
-              New Broadcast
+              New Campaign
             </Link>
           </div>
         </div>
@@ -138,13 +138,13 @@ export default function BroadcastsPage() {
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto mb-4">
               <Send size={22} className="text-emerald-400" />
             </div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-1">No broadcasts yet</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-1">No Campaigns yet</h3>
             <p className="text-xs text-gray-400 mb-5">Send messages to your contacts at scale</p>
             <Link
               href="/broadcasts/new"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-all shadow-sm shadow-emerald-200"
             >
-              <Plus size={14} /> Create your first broadcast
+              <Plus size={14} /> Create your first Campaign
             </Link>
           </div>
         ) : (

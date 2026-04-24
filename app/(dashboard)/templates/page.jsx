@@ -629,7 +629,7 @@ export default function TemplatesPage() {
               <p className="text-xs text-gray-400 mb-6 max-w-xs leading-relaxed">
                 {search || catFilter !== "All" || statFilter !== "All"
                   ? "Try clearing some filters to see more templates"
-                  : "Create reusable WhatsApp messages for broadcasts and quick replies"}
+                  : "Create reusable WhatsApp messages for campaigns and quick replies"}
               </p>
               {!search && catFilter === "All" && statFilter === "All" && (
                 <button onClick={() => setModal({ open: true, template: null })}

@@ -323,7 +323,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 {[
                   { label: "New incoming message",    desc: "Get notified when a contact sends you a message" },
-                  { label: "Broadcast delivered",     desc: "Notify when your broadcast is fully delivered"   },
+                  { label: "Campaign delivered",     desc: "Notify when your campaign is fully delivered"   },
                   { label: "New contact added",       desc: "Alert when a new contact is added"               },
                   { label: "Weekly summary",          desc: "Get a weekly report of your activity"            },
                 ].map(({ label, desc }) => (
@@ -587,7 +587,7 @@ export default function SettingsPage() {
                 <div key={role} className="space-y-3">
                   <p className="text-sm font-bold text-ink-700 capitalize">{role}</p>
                   <div className="rounded-xl border border-surface-200 overflow-hidden">
-                    {["inbox", "contacts", "broadcasts", "templates", "chatbot","catalog", "analytics", "integrations"].map((page, i, arr) => (
+                    {["inbox", "contacts", "Campaigns", "templates", "chatbot","catalog", "analytics", "integrations"].map((page, i, arr) => (
                       <div key={page} className={`flex items-center justify-between px-4 py-3 ${i !== arr.length - 1 ? "border-b border-surface-100" : ""}`}>
                         <p className="text-sm text-ink-700 capitalize">{page}</p>
                         <label className="relative inline-flex cursor-pointer">

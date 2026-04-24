@@ -174,7 +174,7 @@ function EditPanel({ node, onChange, onClose }) {
               <option value="Assign to human agent">Assign to human agent</option>
               <option value="Mark conversation as resolved">Mark as resolved</option>
               <option value="Add tag to contact">Add tag to contact</option>
-              <option value="Send to broadcast list">Add to broadcast list</option>
+              <option value="Send to broadcast list">Add to campaign list</option>
               <option value="Subscribe contact">Subscribe contact</option>
               <option value="Unsubscribe contact">Unsubscribe contact</option>
             </select>

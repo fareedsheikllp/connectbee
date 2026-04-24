@@ -44,7 +44,7 @@ async function getDashboardData(userId, workspaceId, role, memberId) {
 
 const QUICK_ACTIONS = [
   { label: "Import Contacts",  desc: "Add Contacts",        href: "/contacts",       emoji: "🗂️" },
-  { label: "Send Broadcast",   desc: "Reach all your contacts",  href: "/broadcasts/new", emoji: "📣" },
+  { label: "Send Campaign",   desc: "Reach all your contacts",  href: "/broadcasts/new", emoji: "📣" },
   { label: "Build a Chatbot",  desc: "Automate your responses",  href: "/chatbot",        emoji: "⚡" },
   { label: "Add Products",     desc: "Set up your catalog",      href: "/catalog",        emoji: "📦" },
 ];
@@ -65,8 +65,8 @@ export default async function DashboardPage() {
   const STATS = [
     { label: "Total Contacts",     value: data.contacts,      icon: Users,         color: "brand" },
     { label: "Conversations",      value: data.conversations, icon: MessageSquare, color: "blue"  },
-    { label: "Broadcasts Sent",    value: data.sentBroadcasts,icon: Megaphone,     color: "amber" },
-    { label: "Total Broadcasts",   value: data.broadcasts,    icon: TrendingUp,    color: "brand" },
+    { label: "Campaigns Sent",    value: data.sentBroadcasts,icon: Megaphone,     color: "amber" },
+    { label: "Total Campaigns",   value: data.broadcasts,    icon: TrendingUp,    color: "brand" },
   ];
 
   return (

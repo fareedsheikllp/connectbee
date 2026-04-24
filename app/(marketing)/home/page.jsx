@@ -8,7 +8,7 @@ const FEATURES = [
   { emoji: "⚡", title: "AI Chatbot Builder", desc: "Build no-code conversation flows. Your chatbot qualifies leads, answers FAQs, and books appointments 24/7." },
   { emoji: "💬", title: "Multi-Agent Inbox", desc: "Your whole team in one inbox. Assign conversations, collaborate with notes, and resolve faster together." },
   { emoji: "📦", title: "WhatsApp Catalog", desc: "Showcase products inside WhatsApp. Customers browse, add to cart, and buy with no hassle" },
-  { emoji: "🏷️", title: "Contact Segments", desc: "Tag and group contacts by behavior, location, or custom fields. Target the right people every time you broadcast." },
+  { emoji: "🏷️", title: "Contact Segments", desc: "Tag and group contacts by behavior, location, or custom fields. Target the right people every time you broadcast campaigns." },
   { emoji: "⚙️", title: "Workspace Management", desc: "Invite agents, create departments, set roles and permissions. Built for teams of any size." },
 ];
 const STATS = [
@@ -27,7 +27,7 @@ const PLANS = [
 
 const TESTIMONIALS = [
   { name: "Fareed Sheik",     role: "CEO, Taxqwik",        avatar: "SC", text: "We went from 200 to 800 leads per month in 6 weeks. The AI chatbot handles 80% of inquiries without human intervention." },
-  { name: "Barbara Jensen", role: "Head of Growth, Revuola", avatar: "MV", text: "The broadcast feature alone paid for itself in the first campaign. 94% open rate on our Black Friday promotion." },
+  { name: "Barbara Jensen", role: "Head of Growth, Revuola", avatar: "MV", text: "The campaign feature alone paid for itself in the first campaign. 94% open rate on our Black Friday promotion." },
   { name: "Imran Mohammed",    role: "Support Manager, CloudEats", avatar: "PM", text: "Multi-agent chat transformed our support. Response time dropped from 4 hours to under 3 minutes." },
 ];
 

@@ -8,7 +8,7 @@ const sections = [
   },
   {
     title: "2. Description of Service",
-    content: `ConnectBeez provides a WhatsApp engagement platform that allows businesses to send broadcast messages, manage customer conversations, build automated chatbots, and engage with their audience via WhatsApp. The Service is provided as-is and we reserve the right to modify, suspend, or discontinue any aspect of the Service at any time with reasonable notice.`
+    content: `ConnectBeez provides a WhatsApp engagement platform that allows businesses to send campaigns, manage customer conversations, build automated chatbots, and engage with their audience via WhatsApp. The Service is provided as-is and we reserve the right to modify, suspend, or discontinue any aspect of the Service at any time with reasonable notice.`
   },
   {
     title: "3. Account Registration",

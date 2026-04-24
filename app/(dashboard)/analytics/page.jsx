@@ -308,7 +308,7 @@ function LineChart({ data = [], color = C.emerald, showDots = false }) {
 
 // ─── Multi-line chart (delivery rate trend) ───────────────────────
 function DeliveryTrendChart({ data = [] }) {
-  if (!data.length) return <Empty label="Send more broadcasts to see delivery trends" />;
+  if (!data.length) return <Empty label="Send more campaigns to see delivery trends" />;
   const vals = data.map(d => d.value);
   const W = 100, H = 60, pad = 3;
   const pts = vals.map((v, i) => {
@@ -374,7 +374,7 @@ function KPICard({ title, value, sub, icon: Icon, accent = "text-gray-700", ring
 
 // ─── Broadcast table ──────────────────────────────────────────────
 function BroadcastTable({ rows = [], showRetarget = false }) {
-  if (!rows.length) return <Empty label="No broadcasts found" />;
+  if (!rows.length) return <Empty label="No campaigns found" />;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
@@ -459,7 +459,7 @@ export default function AnalyticsPage() {
 
   const navItems = [
     { key: "overview",   label: "Overview",    icon: BarChart2     },
-    { key: "broadcasts", label: "Broadcasts",  icon: Megaphone     },
+    { key: "broadcasts", label: "Campaigns",  icon: Megaphone     },
     { key: "messages",   label: "Messages",    icon: MessageSquare },
     { key: "templates",  label: "Templates",   icon: FileText      },
     { key: "team",       label: "Team",        icon: Users         },
@@ -529,7 +529,7 @@ export default function AnalyticsPage() {
                 {/* KPI grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                   <KPICard title="Contacts"     value={T.contacts?.toLocaleString() || 0} icon={Users}       accent="text-gray-700"    ring="ring-gray-200"    />
-                  <KPICard title="Broadcasts"   value={T.broadcasts || 0}                 icon={Megaphone}   accent="text-emerald-600" ring="ring-emerald-200" bg="bg-emerald-50/60" />
+                  <KPICard title="Campaigns"   value={T.broadcasts || 0}                 icon={Megaphone}   accent="text-emerald-600" ring="ring-emerald-200" bg="bg-emerald-50/60" />
                   <KPICard title="Conversations"value={T.conversations || 0}              icon={Activity}    accent="text-sky-600"     ring="ring-sky-200"     bg="bg-sky-50/60" />
                   <KPICard title="Messages"     value={T.messages?.toLocaleString() || 0} icon={MessageSquare}accent="text-violet-600" ring="ring-violet-200"  bg="bg-violet-50/60" />
                   <KPICard title="Templates"    value={T.templates || 0}                  icon={FileText}    accent="text-amber-600"   ring="ring-amber-200"   bg="bg-amber-50/60" />
@@ -540,7 +540,7 @@ export default function AnalyticsPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <KPICard title="Delivered"    value={T.messagesSent || 0}   sub="Total messages delivered" icon={CheckCircle} accent="text-emerald-600" ring="ring-emerald-200" bg="bg-emerald-50/60" />
                   <KPICard title="Failed"        value={T.messagesFailed || 0} sub="Total failed deliveries"  icon={XCircle}     accent="text-red-500"     ring="ring-red-200"     bg="bg-red-50/50" />
-                  <KPICard title="Delivery Rate" value={`${T.deliveryRate || 0}%`} sub="Across all broadcasts"  icon={TrendingUp}  accent={T.deliveryRate >= 80 ? "text-emerald-600" : T.deliveryRate >= 50 ? "text-amber-600" : "text-red-500"} ring="ring-gray-200" />
+                  <KPICard title="Delivery Rate" value={`${T.deliveryRate || 0}%`} sub="Across all campaigns"  icon={TrendingUp}  accent={T.deliveryRate >= 80 ? "text-emerald-600" : T.deliveryRate >= 50 ? "text-amber-600" : "text-red-500"} ring="ring-gray-200" />
                   <KPICard title="Bot Convos"   value={T.botConversations || 0} sub="Handled by chatbot"      icon={Bot}         accent="text-violet-600"  ring="ring-violet-200"  bg="bg-violet-50/60" />
                 </div>
 
@@ -573,7 +573,7 @@ export default function AnalyticsPage() {
 
                   {/* Broadcast activity bar */}
                   <Card3D className="p-6">
-                    <SectionHeader title="Broadcast Activity" subtitle={`Broadcasts sent per day · last ${range} days`} icon={Megaphone}/>
+                    <SectionHeader title="Campaign Activity" subtitle={`Campaigns sent per day · last ${range} days`} icon={Megaphone}/>
                     <VBarChart data={CH.broadcastActivity} color={C.emerald}/>
                   </Card3D>
                 </div>
@@ -653,7 +653,7 @@ export default function AnalyticsPage() {
 
                 {/* KPIs */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <KPICard title="Total Broadcasts"   value={T.broadcasts || 0}              icon={Megaphone}   accent="text-gray-700"    ring="ring-gray-200"    />
+                  <KPICard title="Total Campaigns"   value={T.broadcasts || 0}              icon={Megaphone}   accent="text-gray-700"    ring="ring-gray-200"    />
                   <KPICard title="Retarget Campaigns" value={T.retargetedBroadcasts || 0}    icon={Target}      accent="text-orange-600"  ring="ring-orange-200"  bg="bg-orange-50/60" />
                   <KPICard title="Overall Delivery"   value={`${T.deliveryRate || 0}%`}      icon={TrendingUp}  accent="text-emerald-600" ring="ring-emerald-200" bg="bg-emerald-50/60" />
                   <KPICard title="Total Failed"       value={T.messagesFailed || 0}          icon={XCircle}     accent="text-red-500"     ring="ring-red-200"     bg="bg-red-50/50" />
@@ -662,14 +662,14 @@ export default function AnalyticsPage() {
                 {/* Broadcast status donut + delivery trend */}
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
                   <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                    <SectionHeader title="Broadcast Status" subtitle="By lifecycle stage" icon={Megaphone}/>
+                    <SectionHeader title="Campaign Status" subtitle="By lifecycle stage" icon={Megaphone}/>
                     <Donut
                       segments={(BR.broadcastStatus || []).map(s => ({ ...s, label: s.status }))}
                       size={110} stroke={16} centerLabel="total"
                     />
                   </div>
                   <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                    <SectionHeader title="Delivery Rate Trend" subtitle="Per broadcast, chronological — dots colored by performance" icon={TrendingUp}/>
+                    <SectionHeader title="Delivery Rate Trend" subtitle="Per campaign, chronological — dots colored by performance" icon={TrendingUp}/>
                     <DeliveryTrendChart data={CH.deliveryTrend}/>
                   </div>
                 </div>
@@ -688,7 +688,7 @@ export default function AnalyticsPage() {
                 {/* All broadcasts table */}
                 <Card3D className="overflow-hidden">
                   <div className="px-6 py-4 border-b border-gray-50">
-                    <SectionHeader title="All Broadcasts" subtitle="Complete list with delivery breakdown" icon={BarChart2}/>
+                    <SectionHeader title="All Campaigns" subtitle="Complete list with delivery breakdown" icon={BarChart2}/>
                   </div>
                   <BroadcastTable rows={TB.recentBroadcasts || []} showRetarget />
                 </Card3D>
@@ -697,7 +697,7 @@ export default function AnalyticsPage() {
                 {(TB.retargetedBroadcasts || []).length > 0 && (
                   <div className="bg-white rounded-2xl border border-orange-100 overflow-hidden shadow-sm">
                     <div className="px-6 py-4 border-b border-orange-50 bg-orange-50/30">
-                      <SectionHeader title="Retarget Campaigns" subtitle="Broadcasts created from failed recipients" icon={Target}/>
+                      <SectionHeader title="Retarget Campaigns" subtitle="Campaigns created from failed recipients" icon={Target}/>
                     </div>
                     <BroadcastTable rows={TB.retargetedBroadcasts} />
                   </div>
@@ -933,7 +933,7 @@ export default function AnalyticsPage() {
                   <div>
                     <p className="text-sm font-bold text-amber-800">Meta Verification Pending</p>
                     <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                      Once your Meta Business is verified, submit templates for approval. Only <strong>approved</strong> templates can be used in production broadcasts outside the 24-hour messaging window.
+                      Once your Meta Business is verified, submit templates for approval. Only <strong>approved</strong> templates can be used in production campaigns outside the 24-hour messaging window.
                     </p>
                   </div>
                 </div>

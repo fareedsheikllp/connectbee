@@ -451,7 +451,7 @@ export default function AutomationsPage() {
       <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-start gap-3">
         <AlertCircle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-amber-700 leading-relaxed">
-        Automations only send messages within WhatsApp's 24-hour window. Keep delays under 24 hours for message actions. Status and label changes work anytime. For longer follow-ups, use broadcasts with approved templates.
+        Automations only send messages within WhatsApp's 24-hour window. Keep delays under 24 hours for message actions. Status and label changes work anytime. For longer follow-ups, use campaigns with approved templates.
         </p>
       </div>
 

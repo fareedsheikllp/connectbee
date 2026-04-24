@@ -1036,7 +1036,7 @@ export default function ContactsPage() {
                 <UsersRound size={28} className="text-surface-300" />
               </div>
               <p className="font-medium text-ink-500">No groups yet</p>
-              <p className="text-sm text-ink-400">Group contacts to broadcast to multiple people at once</p>
+              <p className="text-sm text-ink-400">Group contacts to campaign to multiple people at once</p>
               <button onClick={() => setModal({ type: "addGroup" })}
                 className="mt-1 px-4 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors">
                 Create your first group
